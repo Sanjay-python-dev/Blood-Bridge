@@ -1,0 +1,379 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-bg-dark: #050508;
+    --color-bg-charcoal: #0e0e13;
+    --color-brand-red: #E50914;
+    --color-brand-bright: #FF2B2B;
+    --color-brand-glow: rgba(229, 9, 20, 0.35);
+    --color-text-primary: #FFFFFF;
+    --color-text-secondary: #B0B0B8;
+    --color-text-muted: #737380;
+
+    /* iOS Glass Material Design Tokens */
+    --glass-lvl1-bg: rgba(14, 14, 18, 0.72);
+    --glass-lvl1-border: rgba(255, 255, 255, 0.08);
+    --glass-lvl2-bg: rgba(22, 22, 28, 0.62);
+    --glass-lvl2-border: rgba(255, 255, 255, 0.12);
+    --glass-lvl3-bg: rgba(30, 30, 40, 0.68);
+    --glass-lvl3-border: rgba(255, 255, 255, 0.18);
+    --glass-lvl4-bg: rgba(18, 18, 24, 0.88);
+    --glass-lvl4-border: rgba(255, 255, 255, 0.22);
+
+    --ios-radius-card: 24px;
+    --ios-radius-container: 32px;
+    --ios-radius-btn: 16px;
+    --ios-radius-input: 16px;
+    --ios-radius-control: 12px;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    color-scheme: dark;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: #050508;
+    color: #FFFFFF;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", 'Inter', 'Outfit', system-ui, sans-serif;
+    letter-spacing: -0.012em;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", 'Outfit', 'Inter', system-ui, sans-serif;
+    letter-spacing: -0.025em;
+  }
+
+  /* Custom iOS Glass Red Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: rgba(8, 8, 12, 0.8);
+    backdrop-filter: blur(10px);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(229, 9, 20, 0.35);
+    border-radius: 9999px;
+    border: 2px solid rgba(8, 8, 12, 0.6);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(229, 9, 20, 0.7);
+  }
+
+  /* Global iOS Glass Inputs & Form Controls */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="date"],
+  select,
+  textarea {
+    background-color: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--ios-radius-input);
+    color: #FFFFFF;
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.25), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  input[type="text"]:focus,
+  input[type="email"]:focus,
+  input[type="password"]:focus,
+  input[type="number"]:focus,
+  input[type="tel"]:focus,
+  input[type="date"]:focus,
+  select:focus,
+  textarea:focus {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(229, 9, 20, 0.65);
+    box-shadow: 0 0 0 3.5px rgba(229, 9, 20, 0.18), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+    outline: none;
+  }
+
+  /* Select dropdown items dark glass styling */
+  select option {
+    background-color: #121217;
+    color: #FFFFFF;
+    padding: 10px;
+  }
+}
+
+/* ====================================================
+   iOS GLASS MATERIAL SYSTEM & COMPONENTS
+   ==================================================== */
+@layer components {
+
+  /* LEVEL 1 — Background Glass (Navbar, Footer, Secondary Controls) */
+  .glass-lvl1,
+  .glass-nav {
+    background: rgba(12, 12, 16, 0.72);
+    backdrop-filter: blur(28px) saturate(190%);
+    -webkit-backdrop-filter: blur(28px) saturate(190%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 25px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  /* LEVEL 2 — Standard Glass (Cards, Forms, Sections, Profile Panels) */
+  .glass-lvl2,
+  .glass-card {
+    background: rgba(22, 22, 28, 0.60);
+    backdrop-filter: blur(28px) saturate(190%);
+    -webkit-backdrop-filter: blur(28px) saturate(190%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--ios-radius-card);
+    box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.14);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .glass-card:hover {
+    background: rgba(28, 28, 36, 0.68);
+    border-color: rgba(255, 255, 255, 0.22);
+    box-shadow: 0 20px 48px -6px rgba(0, 0, 0, 0.6), 0 0 25px rgba(229, 9, 20, 0.15), inset 0 1px 1.5px rgba(255, 255, 255, 0.22);
+    transform: translateY(-2px);
+  }
+
+  /* LEVEL 3 — Elevated Glass (Blood Group Cards, Emergency Cards, Key Actions) */
+  .glass-lvl3,
+  .glass-card-elevated {
+    background: linear-gradient(135deg, rgba(35, 35, 46, 0.72) 0%, rgba(24, 24, 32, 0.62) 100%);
+    backdrop-filter: blur(36px) saturate(200%);
+    -webkit-backdrop-filter: blur(36px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: var(--ios-radius-card);
+    box-shadow: 0 24px 50px -10px rgba(0, 0, 0, 0.6), 0 0 35px rgba(229, 9, 20, 0.18), inset 0 1px 1.5px rgba(255, 255, 255, 0.28);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .glass-card-elevated:hover {
+    border-color: rgba(229, 9, 20, 0.6);
+    box-shadow: 0 28px 60px -8px rgba(0, 0, 0, 0.7), 0 0 45px rgba(229, 9, 20, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.35);
+    transform: translateY(-2.5px);
+  }
+
+  /* LEVEL 4 — Floating Glass (Modals, Dialogs, Dropdowns, Notifications) */
+  .glass-lvl4,
+  .glass-modal {
+    background: rgba(18, 18, 24, 0.88);
+    backdrop-filter: blur(48px) saturate(210%);
+    -webkit-backdrop-filter: blur(48px) saturate(210%);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: var(--ios-radius-container);
+    box-shadow: 0 32px 80px -12px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.08), inset 0 1px 2px rgba(255, 255, 255, 0.3);
+  }
+
+  .glass-dropdown {
+    background: rgba(18, 18, 24, 0.92);
+    backdrop-filter: blur(40px) saturate(200%);
+    -webkit-backdrop-filter: blur(40px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: var(--ios-radius-card);
+    box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  }
+
+  /* Glass Badge / Pill */
+  .glass-badge {
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--ios-radius-control);
+    box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.12);
+  }
+
+  .glass-badge-red {
+    background: rgba(229, 9, 20, 0.12);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(229, 9, 20, 0.35);
+    border-radius: var(--ios-radius-control);
+    box-shadow: 0 0 15px rgba(229, 9, 20, 0.15), inset 0 1px 0.5px rgba(255, 255, 255, 0.2);
+  }
+
+  /* iOS Glass Buttons */
+  .btn-red-gradient,
+  .glass-btn-primary {
+    background: linear-gradient(135deg, rgba(255, 43, 43, 0.92) 0%, rgba(229, 9, 20, 0.86) 100%) !important;
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    color: #FFFFFF !important;
+    border: 1px solid rgba(255, 255, 255, 0.25) !important;
+    border-radius: var(--ios-radius-btn);
+    box-shadow: 0 8px 24px rgba(229, 9, 20, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .btn-red-gradient:hover,
+  .glass-btn-primary:hover {
+    transform: translateY(-1.5px);
+    filter: brightness(1.08);
+    box-shadow: 0 12px 32px rgba(229, 9, 20, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
+    border-color: rgba(255, 255, 255, 0.4) !important;
+  }
+
+  .btn-red-gradient:active,
+  .glass-btn-primary:active {
+    transform: scale(0.98);
+    filter: brightness(0.96);
+  }
+
+  .btn-dark-outline,
+  .glass-btn-secondary {
+    background: rgba(255, 255, 255, 0.08) !important;
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.16) !important;
+    border-radius: var(--ios-radius-btn);
+    color: #FFFFFF !important;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .btn-dark-outline:hover,
+  .glass-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.14) !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.28) !important;
+    transform: translateY(-1.5px);
+  }
+
+  .btn-dark-outline:active,
+  .glass-btn-secondary:active {
+    transform: scale(0.98);
+  }
+
+  /* Legacy card-dark class upgrade to iOS Glass */
+  .card-dark {
+    background: rgba(22, 22, 28, 0.60);
+    backdrop-filter: blur(28px) saturate(190%);
+    -webkit-backdrop-filter: blur(28px) saturate(190%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--ios-radius-card);
+    box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.14);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .card-dark:hover {
+    border-color: rgba(229, 9, 20, 0.5);
+    box-shadow: 0 20px 48px -6px rgba(0, 0, 0, 0.6), 0 0 25px rgba(229, 9, 20, 0.2);
+    transform: translateY(-2px);
+  }
+}
+
+/* ====================================================
+   SEAMLESS UTILITY OVERRIDES FOR FULL GLASS CONVERSION
+   ==================================================== */
+@layer utilities {
+  /* All card containers with dark background become translucent iOS frosted glass */
+  .bg-\[\#111111\],
+  .bg-\[\#111111\]\/90,
+  .bg-\[\#111111\]\/80,
+  .bg-\[\#111111\]\/70 {
+    background-color: rgba(22, 22, 28, 0.62) !important;
+    backdrop-filter: blur(28px) saturate(190%) !important;
+    -webkit-backdrop-filter: blur(28px) saturate(190%) !important;
+    box-shadow: 0 16px 45px -8px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.14) !important;
+  }
+
+  /* Sub-tiles, nested items, and input boxes */
+  .bg-\[\#161616\] {
+    background-color: rgba(30, 30, 38, 0.55) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.1) !important;
+  }
+
+  .bg-\[\#141414\] {
+    background-color: rgba(26, 26, 34, 0.58) !important;
+    backdrop-filter: blur(20px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+    box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.08) !important;
+  }
+
+  .bg-\[\#121212\] {
+    background-color: rgba(18, 18, 24, 0.88) !important;
+    backdrop-filter: blur(36px) saturate(200%) !important;
+    -webkit-backdrop-filter: blur(36px) saturate(200%) !important;
+    box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.18) !important;
+  }
+
+  .bg-\[\#180a0c\],
+  .bg-\[\#1a080a\],
+  .bg-\[\#1d1012\],
+  .bg-\[\#18080a\],
+  .bg-\[\#1d0b0e\],
+  .bg-\[\#1c0c0e\] {
+    background-color: rgba(229, 9, 20, 0.12) !important;
+    backdrop-filter: blur(16px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  }
+
+  /* All dark borders upgraded to subtle translucent white glass rims */
+  .border-\[\#222222\],
+  .border-\[\#2a2a2a\],
+  .border-\[\#2d2d2d\],
+  .border-\[\#333333\],
+  .border-\[\#1c1c1c\],
+  .border-\[\#181818\] {
+    border-color: rgba(255, 255, 255, 0.12) !important;
+  }
+
+  /* Rounded geometry tuning for iOS curves */
+  .rounded-3xl {
+    border-radius: 28px !important;
+  }
+
+  .rounded-2xl {
+    border-radius: 22px !important;
+  }
+
+  .rounded-xl {
+    border-radius: 16px !important;
+  }
+}
+
+/* Animations */
+@keyframes heartbeatPulse {
+  0% { transform: scale(1); }
+  14% { transform: scale(1.12); }
+  28% { transform: scale(1); }
+  42% { transform: scale(1.08); }
+  70% { transform: scale(1); }
+}
+
+.animate-heartbeat-slow {
+  animation: heartbeatPulse 2.2s infinite ease-in-out;
+}
+
+@keyframes floatAnim {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-float-slow {
+  animation: floatAnim 4s ease-in-out infinite;
+}
+
+@keyframes ecgTravel {
+  0% { stroke-dashoffset: 600; }
+  100% { stroke-dashoffset: 0; }
+}
+
+.animate-ecg {
+  stroke-dasharray: 600;
+  animation: ecgTravel 3.5s linear infinite;
+}
