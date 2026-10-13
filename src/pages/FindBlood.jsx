@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Search, Filter, RefreshCw, AlertCircle, Users, CheckCircle2, Loader2, ChevronLeft, ChevronRight, ShieldAlert, HeartHandshake } from 'lucide-react';
+import { Search, Filter, RefreshCw, AlertCircle, Users, CheckCircle2, Loader2, ChevronLeft, ChevronRight, ShieldAlert, HeartHandshake, Info, Send, Key, Plus, Flame, Building } from 'lucide-react';
 import DonorCard from '../components/DonorCard';
-import { bloodGroups } from '../data/mockData';
+import BombayRequestModal from '../components/BombayRequestModal';
+import BombayTrackModal from '../components/BombayTrackModal';
+import { bloodGroups, BOMBAY_BLOOD_GROUP, BOMBAY_BLOOD_GROUP_LABEL } from '../data/mockData';
 import { getDonors } from '../services/donorService';
+import { getDemoDistricts, filterDonors } from '../services/demoDonorService';
 import { getCountries, getStates, getDistricts, getNearbyDistricts, defaultCountry, defaultState } from '../services/locationService';
 import { MEDICAL_ELIGIBILITY_DISCLAIMER } from '../services/eligibilityService';
 import { isRareBloodGroup } from '../services/privacyService';
@@ -27,6 +30,16 @@ export default function FindBlood() {
   const [filterCompatible, setFilterCompatible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Bombay Blood Group Special Flow State
+  const [showBombayModal, setShowBombayModal] = useState(false);
+  const [showTrackModal, setShowTrackModal] = useState(false);
+
+  const isBombaySelection =
+    selectedGroup === BOMBAY_BLOOD_GROUP ||
+    selectedGroup === BOMBAY_BLOOD_GROUP_LABEL ||
+    selectedGroup.toLowerCase().includes('bombay') ||
+    selectedGroup === 'Oh';
+
   // Pagination State
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -37,19 +50,27 @@ export default function FindBlood() {
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState('');
 
-  // Available lists based on hierarchy
+  // Available lists dynamically loaded from JSON (Requirement 11)
   const countries = getCountries();
   const states = getStates(selectedCountry);
-  const districts = getDistricts(selectedCountry, selectedState);
+  const demoDistricts = getDemoDistricts();
+  const districts = demoDistricts.length > 0 ? demoDistricts : getDistricts(selectedCountry, selectedState);
 
-  // Fetch donors using repository service
+  // Fetch donors using 38-district demo data source
   const fetchDonors = useCallback(async () => {
+    // Bombay Blood Group does NOT display public donors (Requirement 2 & 4)
+    if (isBombaySelection) {
+      setDonors([]);
+      setTotalPages(1);
+      setTotalCount(0);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setFetchError('');
     try {
-      const res = await getDonors({
-        country: selectedCountry,
-        state: selectedState,
+      const res = filterDonors({
         district: selectedDistrict,
         bloodGroup: selectedGroup,
         availability: selectedAvailability,
@@ -59,21 +80,19 @@ export default function FindBlood() {
         searchQuery,
         page,
         limit: 9,
-        userRole: role || 'USER',
       });
 
       setDonors(res.donors || []);
       setTotalPages(res.totalPages || 1);
       setTotalCount(res.total || 0);
     } catch (err) {
-      console.warn('Could not fetch donors:', err);
-      setFetchError('Using cached donor catalog. Could not reach server.');
+      console.warn('Could not fetch demo donors:', err);
+      setFetchError('Could not load demo donor dataset.');
     } finally {
       setLoading(false);
     }
   }, [
-    selectedCountry,
-    selectedState,
+    isBombaySelection,
     selectedDistrict,
     selectedGroup,
     selectedAvailability,
@@ -82,7 +101,6 @@ export default function FindBlood() {
     filterCompatible,
     searchQuery,
     page,
-    role,
   ]);
 
   useEffect(() => {
@@ -92,7 +110,15 @@ export default function FindBlood() {
   // Sync blood group if URL parameter changes
   useEffect(() => {
     const groupParam = searchParams.get('group');
-    if (groupParam && (bloodGroups.includes(groupParam) || groupParam === 'All Groups')) {
+    if (
+      groupParam &&
+      (bloodGroups.includes(groupParam) ||
+        groupParam === 'All Groups' ||
+        groupParam === BOMBAY_BLOOD_GROUP ||
+        groupParam === BOMBAY_BLOOD_GROUP_LABEL ||
+        groupParam.toLowerCase().includes('bombay') ||
+        groupParam === 'Oh')
+    ) {
       setSelectedGroup(groupParam);
     }
   }, [searchParams]);
@@ -144,6 +170,49 @@ export default function FindBlood() {
           <p className="mt-3 text-base text-[#B0B0B0]">
             Connect with ready and verified voluntary donors across Karur, Chennai, Coimbatore, and all Indian districts.
           </p>
+
+          {/* Blood Request Call to Action Buttons */}
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              to="/request-blood"
+              className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-bold text-xs flex items-center gap-2 backdrop-blur-md shadow-sm transition-all"
+            >
+              <Plus className="w-3.5 h-3.5 text-[#FF2B2B]" />
+              <span>Request Blood</span>
+            </Link>
+            <Link
+              to="/request-blood?urgency=Emergency"
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#FF2B2B] to-[#E50914] hover:from-[#FF4A4A] hover:to-[#FF2B2B] text-white font-black text-xs flex items-center gap-2 shadow-[0_0_20px_rgba(229,9,20,0.5)] transition-all transform hover:-translate-y-0.5"
+            >
+              <Flame className="w-3.5 h-3.5 animate-pulse" />
+              <span>Emergency Blood Request</span>
+            </Link>
+          </div>
+        </div>
+
+        {/* Hospital Blood Needs Callout Banner */}
+        <div className="mb-8 p-4 rounded-2xl bg-gradient-to-r from-[#18080a] via-[#120a0d] to-[#0a0a0a] border border-[#E50914]/30 backdrop-blur-md flex flex-col sm:flex-row items-center justify-between gap-4 shadow-[0_4px_25px_rgba(229,9,20,0.12)]">
+          <div className="flex items-center gap-3.5 text-left">
+            <div className="w-10 h-10 rounded-xl bg-[#E50914]/20 border border-[#E50914]/40 flex items-center justify-center text-[#FF2B2B] flex-shrink-0">
+              <Building className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-white">Looking to donate blood instead?</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#FF2B2B]/20 text-[#FF2B2B] border border-[#FF2B2B]/30">Active Needs</span>
+              </div>
+              <p className="text-xs text-[#B0B0B0] mt-0.5">
+                Verified regional hospitals across Tamil Nadu have published critical blood requirements. Respond voluntarily to save lives.
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/donate-blood"
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#FF2B2B] to-[#990000] hover:from-[#FF4A4A] hover:to-[#FF2B2B] text-white font-bold text-xs flex items-center gap-2 shadow-[0_0_15px_rgba(229,9,20,0.3)] transition-all whitespace-nowrap flex-shrink-0"
+          >
+            <span>Explore Hospital Needs</span>
+            <ChevronRight className="w-3.5 h-3.5 text-white" />
+          </Link>
         </div>
 
         {/* Rare Blood Group Privacy Warning Banner */}
@@ -232,6 +301,9 @@ export default function FindBlood() {
                     {bg}
                   </option>
                 ))}
+                <option value={BOMBAY_BLOOD_GROUP_LABEL} className="text-[#FF2B2B] font-bold">
+                  ★ {BOMBAY_BLOOD_GROUP_LABEL} (Protected Registry)
+                </option>
               </select>
             </div>
 
@@ -381,8 +453,84 @@ export default function FindBlood() {
           </div>
         )}
 
-        {/* Donors Catalog Grid */}
-        {loading ? (
+        {/* Fictional Demo Donor Data Notice (Requirement 15) */}
+        <div className="mb-6 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-2.5 text-xs text-amber-300">
+          <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+          <span>Demo donor data — contact details are for demonstration only.</span>
+        </div>
+
+        {/* Donors Catalog Grid / Bombay Protocol View */}
+        {isBombaySelection ? (
+          <div className="bg-[#111111]/90 backdrop-blur-2xl border border-red-500/30 rounded-3xl p-8 md:p-12 shadow-2xl relative overflow-hidden animate-fadeIn">
+            {/* Top Red Glow Accent */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-600 via-amber-500 to-red-600" />
+            <div className="absolute -top-32 -right-32 w-80 h-80 bg-red-600/10 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="max-w-3xl mx-auto text-center">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-bold tracking-wider uppercase mb-5">
+                <ShieldAlert className="w-4 h-4 text-[#FF2B2B]" />
+                <span>Restricted Clinical Protocol • Rare Phenotype Registry</span>
+              </div>
+
+              <h2 className="text-2xl md:text-4xl font-extrabold text-white tracking-tight mb-4">
+                Bombay Blood Group <span className="text-[#FF2B2B]">(Oh / hh)</span>
+              </h2>
+
+              <div className="p-4 rounded-2xl bg-black/50 border border-red-500/20 text-xs md:text-sm text-neutral-300 mb-8 leading-relaxed text-left space-y-3">
+                <p className="font-semibold text-white">
+                  Bombay Blood Group (Oh / hh) is an extremely rare blood phenotype. Due to donor safety, vulnerability to solicitation, and extreme clinical scarcity, donor details are protected and cannot be browsed publicly. Access requires verified hospital authorization.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                  <div className="p-3 rounded-xl bg-neutral-900/80 border border-white/5">
+                    <div className="text-[10px] uppercase font-bold text-neutral-400">Genotype / Antigen</div>
+                    <div className="text-xs font-bold text-white mt-0.5">H-Deficient (hh / Oh)</div>
+                  </div>
+                  <div className="p-3 rounded-xl bg-neutral-900/80 border border-white/5">
+                    <div className="text-[10px] uppercase font-bold text-neutral-400">Compatibility Rule</div>
+                    <div className="text-xs font-bold text-amber-400 mt-0.5">Can ONLY receive Oh</div>
+                  </div>
+                  <div className="p-3 rounded-xl bg-neutral-900/80 border border-white/5">
+                    <div className="text-[10px] uppercase font-bold text-neutral-400">Prevalence</div>
+                    <div className="text-xs font-bold text-red-400 mt-0.5">&lt; 0.0004% (~1 in 10,000)</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 mb-8">
+                <button
+                  onClick={() => setShowBombayModal(true)}
+                  className="w-full sm:w-auto px-7 py-3.5 rounded-xl font-black text-sm text-white bg-gradient-to-r from-[#FF2B2B] to-[#E50914] hover:brightness-110 shadow-[0_0_25px_rgba(229,9,20,0.45)] transition-all flex items-center justify-center gap-2"
+                >
+                  <HeartHandshake className="w-4 h-4" />
+                  <span>Request Bombay Blood</span>
+                </button>
+
+                <button
+                  onClick={() => setShowTrackModal(true)}
+                  className="w-full sm:w-auto px-6 py-3.5 rounded-xl font-bold text-sm text-neutral-200 bg-neutral-900 hover:bg-neutral-800 border border-white/10 hover:border-white/20 transition-all flex items-center justify-center gap-2"
+                >
+                  <Search className="w-4 h-4 text-neutral-400" />
+                  <span>Track Existing Request</span>
+                </button>
+
+                <Link
+                  to="/bombay-access"
+                  className="w-full sm:w-auto px-6 py-3.5 rounded-xl font-bold text-sm text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all flex items-center justify-center gap-2"
+                >
+                  <Key className="w-4 h-4" />
+                  <span>Hospital Access Portal</span>
+                </Link>
+              </div>
+
+              {/* 24/7 Helpline Footer */}
+              <div className="border-t border-white/10 pt-5 flex flex-col sm:flex-row items-center justify-between text-xs text-neutral-400 gap-2">
+                <span>Emergency 24/7 BloodBridge Rare Protocol Line:</span>
+                <span className="font-mono font-bold text-red-400 tracking-wider">1800-BLOOD-BRIDGE (Toll Free)</span>
+              </div>
+            </div>
+          </div>
+        ) : loading ? (
           <div className="py-24 flex flex-col items-center justify-center gap-4 text-center bg-[#111111]/40 border border-white/5 rounded-3xl">
             <Loader2 className="w-10 h-10 text-[#FF2B2B] animate-spin" />
             <p className="text-sm text-[#B0B0B0] font-medium tracking-wide">
@@ -444,13 +592,13 @@ export default function FindBlood() {
             )}
           </>
         ) : (
-          /* Empty State as Specified in Rule 4 */
+          /* Empty State as Specified in Rule 4 & Requirement 7 */
           <div className="text-center py-20 bg-[#111111] border border-[#222222] rounded-3xl p-8 animate-fadeIn max-w-2xl mx-auto shadow-2xl">
             <div className="w-16 h-16 rounded-full bg-[#1e0a0d] border border-[#E50914]/40 flex items-center justify-center text-[#FF2B2B] mx-auto mb-4">
               <AlertCircle className="w-8 h-8" />
             </div>
             <h3 className="text-2xl font-bold text-white mb-2">
-              No matching donors were found in this district.
+              No matching donors found in this district.
             </h3>
             <p className="text-sm text-[#B0B0B0] max-w-md mx-auto mb-8 leading-relaxed">
               We couldn't find active voluntary donors matching <strong className="text-white">{selectedGroup}</strong> in <strong className="text-white">{selectedDistrict}</strong>. Choose one of the instant triage actions below:
@@ -493,6 +641,23 @@ export default function FindBlood() {
         </div>
 
       </div>
+
+      {/* Bombay Request Modal */}
+      {showBombayModal && (
+        <BombayRequestModal
+          isOpen={showBombayModal}
+          onClose={() => setShowBombayModal(false)}
+          initialDistrict={selectedDistrict !== 'All Districts' ? selectedDistrict : ''}
+        />
+      )}
+
+      {/* Bombay Request Tracking Modal */}
+      {showTrackModal && (
+        <BombayTrackModal
+          isOpen={showTrackModal}
+          onClose={() => setShowTrackModal(false)}
+        />
+      )}
     </div>
   );
 }

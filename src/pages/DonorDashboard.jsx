@@ -26,10 +26,14 @@ import {
   FileText,
   Lock,
   Phone,
+  Mail,
   Check,
   X,
   Plus,
   Search,
+  Flame,
+  Edit3,
+  AlertCircle,
 } from 'lucide-react';
 import { useAuth, USER_ROLES } from '../context/AuthContext';
 import {
@@ -38,8 +42,11 @@ import {
   getOpenBloodRequests,
   getUserBloodRequests,
   updateBloodRequestStatus,
+  getDonorMatches,
+  respondToDonorMatch,
   REQUEST_STATUS,
 } from '../services/requestService';
+import RequestDetailsModal from '../components/RequestDetailsModal';
 import { updateDonorLastDonationDate } from '../services/donorService';
 import { getDonorEligibility, MEDICAL_ELIGIBILITY_DISCLAIMER } from '../services/eligibilityService';
 import { isBloodCompatible } from '../services/compatibilityService';
@@ -50,6 +57,8 @@ import {
 } from '../services/notificationService';
 import { showToast } from '../components/Toast';
 import { TAMIL_NADU_DISTRICTS } from '../data/locationData';
+import BloodAtmosphere from '../components/animations/BloodAtmosphere';
+import { fetchDonorMyResponses, cancelDonorResponse } from '../services/hospitalRequirementService';
 
 export default function DonorDashboard() {
   const navigate = useNavigate();
@@ -60,14 +69,16 @@ export default function DonorDashboard() {
   // Role detection
   const isSeeker = role === 'seeker' || profile?.role === 'seeker' || profile?.user_type === 'seeker' || profile?.user_type === 'requester';
 
-  const defaultTab = searchParams.get('tab') === 'requests'
+  const requestedTabParam = searchParams.get('tab');
+  const defaultTab = requestedTabParam === 'requests'
     ? (isSeeker ? 'My Blood Requests' : 'Donation Requests')
-    : 'Dashboard';
+    : (requestedTabParam === 'profile' ? 'Settings' : 'Dashboard');
 
   const [activeTab, setActiveTab] = useState(defaultTab);
   const [isAvailable, setIsAvailable] = useState(true);
   const [isPaused, setIsPaused] = useState(false);
   const [directRequests, setDirectRequests] = useState([]);
+  const [donorMatches, setDonorMatches] = useState([]);
   const [emergencyRequests, setEmergencyRequests] = useState([]);
   const [userRequests, setUserRequests] = useState([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
@@ -75,6 +86,13 @@ export default function DonorDashboard() {
   const [pledgedRequests, setPledgedRequests] = useState({});
   const [editingLastDate, setEditingLastDate] = useState(false);
   const [newLastDate, setNewLastDate] = useState('');
+  const [selectedModalRequest, setSelectedModalRequest] = useState(null);
+  const [respondingMatchId, setRespondingMatchId] = useState(null);
+
+  // Hospital Blood Needs Donor Responses
+  const [donorResponses, setDonorResponses] = useState([]);
+  const [responsesFilter, setResponsesFilter] = useState('All');
+  const [cancellingResponseId, setCancellingResponseId] = useState(null);
 
   // Complete Profile Modal State (Requirement 14 for existing user compatibility)
   const [showCompleteProfileModal, setShowCompleteProfileModal] = useState(false);
@@ -142,12 +160,25 @@ export default function DonorDashboard() {
         const myReqs = await getUserBloodRequests(user.id);
         setUserRequests(myReqs || []);
       }
+
+      // 3. Fetch live matched blood requests for this donor
+      const donorIdentifier = donorRecord?.id || profile?.donor_id || profile?.phone || user?.phone || user?.id;
+      if (donorIdentifier) {
+        const matches = await getDonorMatches(donorIdentifier);
+        setDonorMatches(matches || []);
+      }
+
+      // 4. Fetch voluntary responses to verified hospital blood requirements
+      if (user?.id) {
+        const myResponses = await fetchDonorMyResponses(user.id);
+        setDonorResponses(myResponses || []);
+      }
     } catch (e) {
       console.warn('Dashboard data loading note:', e);
     } finally {
       setLoadingRequests(false);
     }
-  }, [user]);
+  }, [user, donorRecord, profile]);
 
   useEffect(() => {
     loadData();
@@ -200,6 +231,28 @@ export default function DonorDashboard() {
     }
   };
 
+  const handleMatchResponse = async (matchId, response) => {
+    setRespondingMatchId(matchId);
+    try {
+      const res = await respondToDonorMatch(matchId, response);
+      if (res && res.success) {
+        showToast(
+          response === 'ACCEPTED'
+            ? 'Thank you! You ACCEPTED this blood donation match. Requester & hospital details unlocked.'
+            : 'You declined this match. BloodBridge is continuing the search for this patient.',
+          response === 'ACCEPTED' ? 'success' : 'info'
+        );
+        await loadData();
+      } else {
+        showToast('Could not record match response.', 'error');
+      }
+    } catch (err) {
+      showToast('Error responding to match', 'error');
+    } finally {
+      setRespondingMatchId(null);
+    }
+  };
+
   // Seeker: update status of own blood request
   const handleUserRequestStatus = async (reqId, newStatus) => {
     try {
@@ -232,40 +285,77 @@ export default function DonorDashboard() {
     return isBloodCompatible(displayBlood, req.bloodGroup);
   });
 
+  const pendingDirectCount = directRequests.filter((r) => r.status === REQUEST_STATUS.PENDING || r.status === 'Open').length;
+  const pendingMatchesCount = donorMatches.filter((m) => m.match_status === 'MATCHED' || m.match_status === 'CONTACT_REQUESTED').length;
+  const totalPendingDonations = pendingDirectCount + pendingMatchesCount;
+  const activeSeekerRequests = userRequests.filter((r) => ['PENDING', 'MATCHING', 'DONOR_CONTACTED', 'DONOR_ACCEPTED', 'Open'].includes(r.status)).length;
+  const pendingResponsesCount = donorResponses.filter((r) => r.status === 'PENDING_HOSPITAL_RESPONSE').length;
+
+  const handleCancelResponse = async (responseId) => {
+    setCancellingResponseId(responseId);
+    try {
+      await cancelDonorResponse(responseId, user?.id);
+      showToast('Donation response cancelled.', 'info');
+      setDonorResponses((prev) =>
+        prev.map((r) => (r.id === responseId ? { ...r, status: 'CANCELLED' } : r))
+      );
+    } catch (err) {
+      showToast(err.message || 'Could not cancel response.', 'error');
+    } finally {
+      setCancellingResponseId(null);
+    }
+  };
+
   // Sidebar navigation menu
   const menuItems = isSeeker
     ? [
         { name: 'Dashboard', icon: LayoutDashboard },
-        { name: 'My Blood Requests', icon: Heart, badge: userRequests.filter((r) => r.status === 'Open').length || null },
-        { name: 'My Profile', icon: User },
+        { name: 'My Blood Requests', icon: Heart, badge: activeSeekerRequests || null },
         { name: 'Notifications', icon: Bell, badge: unreadCount || null },
         { name: 'Settings', icon: Settings },
       ]
     : [
         { name: 'Dashboard', icon: LayoutDashboard },
-        { name: 'My Profile', icon: User },
+        { name: 'My Donation Responses', icon: Send, badge: pendingResponsesCount || null },
         { name: 'Availability', icon: isAvailable ? ToggleRight : ToggleLeft },
-        { name: 'Donation Requests', icon: Heart, badge: directRequests.filter((r) => r.status === REQUEST_STATUS.PENDING || r.status === 'Open').length || null },
-        { name: 'My Blood Requests', icon: FileText, badge: userRequests.filter((r) => r.status === 'Open').length || null },
+        { name: 'Donation Requests', icon: Heart, badge: totalPendingDonations || null },
+        { name: 'My Blood Requests', icon: FileText, badge: activeSeekerRequests || null },
         { name: 'Donation History', icon: History },
         { name: 'Notifications', icon: Bell, badge: unreadCount || null },
         { name: 'Settings', icon: Settings },
       ];
 
-  const donationHistoryList = [
+  const initialDonationHistoryList = [
     { date: 'May 01, 2026', place: 'Govt Medical College Hospital, Karur', units: '1 Unit', type: 'Whole Blood' },
     { date: 'January 20, 2026', place: 'Apollo Speciality Hospital, Karur', units: '1 Unit', type: 'Whole Blood' },
     { date: 'September 15, 2025', place: 'Rotary Blood Bank, Coimbatore', units: '1 Unit', type: 'Platelets' },
   ];
 
+  const completedHospitalDonations = donorResponses
+    .filter((r) => r.status === 'DONATION_COMPLETED')
+    .map((r) => ({
+      date: new Date(r.completed_at || r.updated_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+      place: r.hospital_name,
+      units: '1 Unit',
+      type: `${r.donor_blood_group} (Hospital Transfusion)`
+    }));
+
+  const donationHistoryList = [...completedHospitalDonations, ...initialDonationHistoryList];
+
   return (
-    <div className="min-h-screen bg-[#050505] text-white flex flex-col md:flex-row">
+    <div className="min-h-screen bg-[#050505] text-white flex flex-col md:flex-row relative overflow-hidden">
+      <BloodAtmosphere intensity={0.1} dropCount={0} particleCount={3} />
       {/* Sidebar */}
       <aside className="w-full md:w-64 bg-[#0a0a0a] border-r border-[#1e1e1e] p-5 flex flex-col justify-between flex-shrink-0">
         <div className="space-y-6">
           {/* User Info Capsule */}
-          <div className="flex items-center gap-3 p-3 rounded-2xl bg-[#141414] border border-[#222222]">
-            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#FF2B2B] to-[#990000] flex items-center justify-center font-bold text-white shadow-[0_0_12px_rgba(229,9,20,0.5)] flex-shrink-0">
+          <button
+            type="button"
+            onClick={() => setActiveTab('Settings')}
+            title="Open Account & Settings"
+            className="w-full text-left flex items-center gap-3 p-3 rounded-2xl bg-[#141414] hover:bg-[#181818] border border-[#222222] hover:border-white/10 transition-all cursor-pointer group"
+          >
+            <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#FF2B2B] to-[#990000] flex items-center justify-center font-bold text-white shadow-[0_0_12px_rgba(229,9,20,0.5)] flex-shrink-0 group-hover:scale-105 transition-transform">
               {displayName.slice(0, 2).toUpperCase()}
             </div>
             <div className="overflow-hidden">
@@ -277,7 +367,7 @@ export default function DonorDashboard() {
                 {isSeeker ? 'Blood Seeker' : 'Active Donor'}
               </span>
             </div>
-          </div>
+          </button>
 
           {/* Nav Items */}
           <nav className="space-y-1">
@@ -456,6 +546,14 @@ export default function DonorDashboard() {
                   {isSeeker ? `Active (${userRequests.filter((r) => r.status === 'Open').length})` : `Requests (${directRequests.length})`}
                 </span>
               </button>
+
+              <Link
+                to="/donate-blood"
+                className="p-3.5 rounded-2xl bg-[#111111] hover:bg-[#161616] border border-white/5 hover:border-sky-400/50 transition-all text-center flex flex-col items-center justify-center gap-1.5 shadow-sm"
+              >
+                <Building className="w-5 h-5 text-sky-400" />
+                <span className="text-xs font-bold text-white">Hospital Needs</span>
+              </Link>
 
               <Link
                 to="/request-blood"
@@ -788,99 +886,167 @@ export default function DonorDashboard() {
         {/* ====================================================
             TAB: MY BLOOD REQUESTS (Seeker / Requester Management)
             ==================================================== */}
+        {/* ====================================================
+            TAB: MY BLOOD REQUESTS (Seeker / Requester Management)
+            ==================================================== */}
         {activeTab === 'My Blood Requests' && (
           <div className="space-y-6 mt-8">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h3 className="text-2xl font-black text-white tracking-tight">My Blood Requests</h3>
                 <p className="text-sm text-[#B0B0B0] mt-1">
-                  Track, update, or cancel blood requests you have posted.
+                  Track live matching progress, view matched donors, and manage your blood requests.
                 </p>
               </div>
-              <Link
-                to="/request-blood"
-                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#FF2B2B] to-[#E50914] text-xs font-bold text-white shadow-md flex items-center gap-2 self-start"
-              >
-                <Plus className="w-4 h-4" />
-                <span>New Blood Request</span>
-              </Link>
+              <div className="flex items-center gap-2.5">
+                <Link
+                  to="/request-blood"
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#FF2B2B] to-[#E50914] text-xs font-bold text-white shadow-[0_0_15px_rgba(229,9,20,0.4)] flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Post Blood Request</span>
+                </Link>
+                <Link
+                  to="/request-blood?urgency=Emergency"
+                  className="px-4 py-2.5 rounded-xl bg-red-950/60 hover:bg-red-900 border border-red-500/40 text-red-300 text-xs font-bold transition-all flex items-center gap-1.5"
+                >
+                  <Flame className="w-4 h-4 text-[#FF2B2B]" />
+                  <span>Emergency</span>
+                </Link>
+              </div>
+            </div>
+
+            {/* Metrics Pills */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-4 rounded-2xl bg-[#111111] border border-[#222222]">
+                <span className="text-[11px] font-bold text-[#737373] uppercase tracking-wider block">Total Requests</span>
+                <span className="text-2xl font-black text-white mt-1 block">{userRequests.length}</span>
+              </div>
+              <div className="p-4 rounded-2xl bg-[#111111] border border-[#222222]">
+                <span className="text-[11px] font-bold text-amber-400/80 uppercase tracking-wider block">Active / Matching</span>
+                <span className="text-2xl font-black text-amber-400 mt-1 block">
+                  {userRequests.filter((r) => ['PENDING', 'MATCHING', 'DONOR_CONTACTED', 'DONOR_ACCEPTED', 'Open'].includes(r.status)).length}
+                </span>
+              </div>
+              <div className="p-4 rounded-2xl bg-[#111111] border border-[#222222]">
+                <span className="text-[11px] font-bold text-emerald-400/80 uppercase tracking-wider block">Fulfilled</span>
+                <span className="text-2xl font-black text-emerald-400 mt-1 block">
+                  {userRequests.filter((r) => ['FULFILLED', 'Fulfilled'].includes(r.status)).length}
+                </span>
+              </div>
+              <div className="p-4 rounded-2xl bg-[#111111] border border-[#222222]">
+                <span className="text-[11px] font-bold text-red-400/80 uppercase tracking-wider block">Emergency Urgency</span>
+                <span className="text-2xl font-black text-[#FF2B2B] mt-1 block">
+                  {userRequests.filter((r) => r.urgency === 'Emergency' || r.emergencyLevel === 'Critical').length}
+                </span>
+              </div>
             </div>
 
             <div className="space-y-4">
               {userRequests.length > 0 ? (
-                userRequests.map((req) => (
-                  <div
-                    key={req.id}
-                    className="bg-[#111111] border border-[#222222] hover:border-[#E50914]/50 rounded-3xl p-6 transition-all shadow-md"
-                  >
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/5">
-                      <div className="flex items-start gap-4">
-                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#FF2B2B] to-[#990000] flex items-center justify-center text-white font-black text-xl flex-shrink-0">
-                          {req.bloodGroup}
+                userRequests.map((req) => {
+                  const isFinished = ['FULFILLED', 'Fulfilled', 'CANCELLED', 'Cancelled', 'EXPIRED'].includes(req.status);
+                  const displayStatus = req.status || 'PENDING';
+                  return (
+                    <div
+                      key={req.id}
+                      className="bg-[#111111] border border-[#222222] hover:border-[#E50914]/50 rounded-3xl p-6 transition-all shadow-md"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/5">
+                        <div className="flex items-start gap-4">
+                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#FF2B2B] to-[#990000] flex items-center justify-center text-white font-black text-xl flex-shrink-0 shadow-[0_0_15px_rgba(229,9,20,0.3)]">
+                            {req.bloodGroup}
+                          </div>
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2.5">
+                              <h4 className="text-lg font-bold text-white">{req.patientName || req.patient}</h4>
+                              <span className="px-2 py-0.5 rounded bg-white/5 text-red-400 font-mono text-[10px] font-bold border border-white/10">
+                                {req.requestCode || req.code || req.id}
+                              </span>
+                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                                ['FULFILLED', 'Fulfilled'].includes(req.status)
+                                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                                  : req.status === 'DONOR_ACCEPTED'
+                                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                                  : req.status === 'DONOR_CONTACTED'
+                                  ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
+                                  : req.status === 'MATCHING'
+                                  ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40'
+                                  : ['CANCELLED', 'Cancelled', 'EXPIRED'].includes(req.status)
+                                  ? 'bg-zinc-700/40 text-zinc-400 border border-zinc-600/40'
+                                  : 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+                              }`}>
+                                {displayStatus}
+                              </span>
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                req.urgency === 'Emergency' || req.emergencyLevel === 'Critical'
+                                  ? 'bg-red-500/20 text-red-400 border border-red-500/40 animate-pulse'
+                                  : 'bg-amber-500/10 text-amber-300 border border-amber-500/30'
+                              }`}>
+                                {req.urgency || req.emergencyLevel || 'Urgent'}
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-[#B0B0B0] mt-1.5">
+                              <Building className="w-3.5 h-3.5 text-[#E50914]" />
+                              <span>{req.hospitalName || req.hospital}</span>
+                              <span>•</span>
+                              <span>{req.city || req.district}</span>
+                              <span>•</span>
+                              <span className="font-bold text-white">{req.unitsRequired || req.units} Units Required</span>
+                              {req.requiredDate && (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-zinc-400 font-mono">Needed: {req.requiredDate}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2.5">
-                            <h4 className="text-lg font-bold text-white">{req.patientName || req.patient}</h4>
-                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                              req.status === 'Fulfilled'
-                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                                : req.status === 'Cancelled'
-                                ? 'bg-zinc-700/40 text-zinc-400 border border-zinc-600/40'
-                                : 'bg-red-500/20 text-red-400 border border-red-500/40'
-                            }`}>
-                              {req.status}
-                            </span>
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-500/10 text-amber-300 border border-amber-500/30">
-                              {req.emergencyLevel || 'Critical'}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 text-xs text-[#B0B0B0] mt-1">
-                            <Building className="w-3.5 h-3.5 text-[#E50914]" />
-                            <span>{req.hospitalName || req.hospital}</span>
-                            <span>•</span>
-                            <span>{req.city}</span>
-                            <span>•</span>
-                            <span className="font-bold text-white">{req.units} Units Required</span>
-                          </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            onClick={() => setSelectedModalRequest(req)}
+                            className="px-4 py-2 rounded-xl bg-gradient-to-r from-red-600/20 to-red-500/10 hover:from-red-600/30 hover:to-red-500/20 text-red-300 border border-red-500/40 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
+                          >
+                            <Activity className="w-3.5 h-3.5 text-[#FF2B2B]" />
+                            <span>Track Timeline & Matches</span>
+                          </button>
+                          <Link
+                            to={`/find-blood?group=${req.bloodGroup}&city=${req.city || req.district}`}
+                            className="px-3.5 py-2 rounded-xl bg-[#1c1c1c] hover:bg-[#252525] text-white border border-white/10 text-xs font-semibold transition-all flex items-center gap-1.5"
+                          >
+                            <Search className="w-3.5 h-3.5 text-[#FF2B2B]" />
+                            <span>Find Donors</span>
+                          </Link>
+                          {!isFinished && (
+                            <>
+                              <button
+                                onClick={() => handleUserRequestStatus(req.id, 'FULFILLED')}
+                                className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center gap-1 shadow-sm"
+                              >
+                                <Check className="w-3.5 h-3.5" />
+                                <span>Fulfilled</span>
+                              </button>
+                              <button
+                                onClick={() => handleUserRequestStatus(req.id, 'CANCELLED')}
+                                className="px-3.5 py-2 rounded-xl bg-[#1c1c1c] hover:bg-[#252525] text-zinc-400 hover:text-red-400 border border-zinc-800 text-xs font-semibold transition-all flex items-center gap-1"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                                <span>Cancel</span>
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Link
-                          to={`/find-blood?group=${req.bloodGroup}&city=${req.city}`}
-                          className="px-4 py-2 rounded-xl bg-[#1c1c1c] hover:bg-[#252525] text-white border border-white/10 text-xs font-semibold transition-all flex items-center gap-1.5"
-                        >
-                          <Search className="w-3.5 h-3.5 text-[#FF2B2B]" />
-                          <span>Search Matching Donors</span>
-                        </Link>
-                        {req.status === 'Open' && (
-                          <>
-                            <button
-                              onClick={() => handleUserRequestStatus(req.id, 'Fulfilled')}
-                              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
-                            >
-                              <Check className="w-3.5 h-3.5" />
-                              <span>Mark Fulfilled</span>
-                            </button>
-                            <button
-                              onClick={() => handleUserRequestStatus(req.id, 'Cancelled')}
-                              className="px-3.5 py-2 rounded-xl bg-[#1c1c1c] hover:bg-[#252525] text-red-400 border border-red-500/30 text-xs font-semibold transition-all flex items-center gap-1.5"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                              <span>Cancel</span>
-                            </button>
-                          </>
-                        )}
-                      </div>
+                      {req.reason && (
+                        <p className="text-xs text-[#B0B0B0] mt-3 italic">
+                          Clinical Context: "{req.reason}"
+                        </p>
+                      )}
                     </div>
-
-                    {req.additionalMessage && (
-                      <p className="text-xs text-[#B0B0B0] mt-3 italic">
-                        Note: "{req.additionalMessage}"
-                      </p>
-                    )}
-                  </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="p-12 text-center bg-[#111111] border border-white/5 rounded-3xl text-sm text-[#737373]">
                   You have not submitted any blood requests yet.{' '}
@@ -894,93 +1060,546 @@ export default function DonorDashboard() {
         )}
 
         {/* ====================================================
-            TAB 2: DONATION REQUESTS (Accept / Decline Workflow)
+            TAB: MY DONATION RESPONSES (Hospital Blood Needs)
             ==================================================== */}
-        {activeTab === 'Donation Requests' && (
-          <div className="space-y-6 mt-8">
-            <div>
-              <h3 className="text-2xl font-black text-white tracking-tight">Direct Donation Requests</h3>
-              <p className="text-sm text-[#B0B0B0] mt-1">
-                Patients and hospitals requesting direct blood donation connections with you.
-              </p>
+        {activeTab === 'My Donation Responses' && (
+          <div className="space-y-6 mt-8 animate-fadeIn">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-2xl font-black text-white tracking-tight">My Donation Responses</h3>
+                <p className="text-sm text-[#B0B0B0] mt-1">
+                  Track the status of your voluntary responses sent to verified hospital blood requirements.
+                </p>
+              </div>
+
+              <Link
+                to="/donate-blood"
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#FF2B2B] via-[#E50914] to-[#990000] text-xs font-bold text-white shadow-[0_0_15px_rgba(229,9,20,0.4)] flex items-center gap-2 transform hover:-translate-y-0.5 transition-all"
+              >
+                <Building className="w-4 h-4" />
+                <span>Explore Hospital Blood Needs</span>
+              </Link>
             </div>
 
+            {/* Metrics Pills */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="p-4 rounded-2xl bg-[#111111] border border-[#222222]">
+                <span className="text-[11px] font-bold text-[#737373] uppercase tracking-wider block">Total Responses</span>
+                <span className="text-2xl font-black text-white mt-1 block">{donorResponses.length}</span>
+              </div>
+              <div className="p-4 rounded-2xl bg-[#111111] border border-[#222222]">
+                <span className="text-[11px] font-bold text-amber-400/80 uppercase tracking-wider block">Pending Review</span>
+                <span className="text-2xl font-black text-amber-400 mt-1 block">
+                  {donorResponses.filter((r) => r.status === 'PENDING_HOSPITAL_RESPONSE').length}
+                </span>
+              </div>
+              <div className="p-4 rounded-2xl bg-[#111111] border border-[#222222]">
+                <span className="text-[11px] font-bold text-emerald-400/80 uppercase tracking-wider block">Accepted / Scheduled</span>
+                <span className="text-2xl font-black text-emerald-400 mt-1 block">
+                  {donorResponses.filter((r) => r.status === 'ACCEPTED_BY_HOSPITAL' || r.status === 'DONATION_SCHEDULED').length}
+                </span>
+              </div>
+              <div className="p-4 rounded-2xl bg-[#111111] border border-[#222222]">
+                <span className="text-[11px] font-bold text-purple-400/80 uppercase tracking-wider block">Completed</span>
+                <span className="text-2xl font-black text-purple-400 mt-1 block">
+                  {donorResponses.filter((r) => r.status === 'DONATION_COMPLETED').length}
+                </span>
+              </div>
+            </div>
+
+            {/* Sub-Filter Tabs */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-white/5">
+              {['All', 'Pending', 'Accepted', 'Scheduled', 'Completed'].map((tab) => {
+                const isActive = responsesFilter === tab;
+                return (
+                  <button
+                    key={tab}
+                    onClick={() => setResponsesFilter(tab)}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                      isActive
+                        ? 'bg-white/10 text-white border border-white/20 shadow-sm'
+                        : 'text-[#737373] hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    {tab === 'All' ? 'All Responses' : tab}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Responses List */}
             <div className="space-y-4">
-              {directRequests.map((req) => (
-                <div
-                  key={req.id}
-                  className="bg-[#111111] border border-[#222222] hover:border-[#E50914]/50 rounded-3xl p-6 transition-all shadow-md"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/5">
-                    <div className="flex items-start gap-4">
-                      <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#FF2B2B] to-[#990000] flex items-center justify-center text-white font-black text-xl flex-shrink-0">
-                        {req.donorBloodGroup || displayBlood}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2.5">
-                          <h4 className="text-lg font-bold text-white">{req.patientName}</h4>
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-red-500/20 text-red-400 border border-red-500/40">
-                            {req.urgency}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-[#B0B0B0] mt-1">
-                          <Building className="w-3.5 h-3.5 text-[#E50914]" />
-                          <span>{req.hospital}</span>
-                          <span>•</span>
-                          <span>{req.city}</span>
-                        </div>
-                      </div>
-                    </div>
+              {(() => {
+                let filtered = donorResponses;
+                if (responsesFilter === 'Pending') filtered = filtered.filter((r) => r.status === 'PENDING_HOSPITAL_RESPONSE');
+                if (responsesFilter === 'Accepted') filtered = filtered.filter((r) => r.status === 'ACCEPTED_BY_HOSPITAL');
+                if (responsesFilter === 'Scheduled') filtered = filtered.filter((r) => r.status === 'DONATION_SCHEDULED');
+                if (responsesFilter === 'Completed') filtered = filtered.filter((r) => r.status === 'DONATION_COMPLETED');
 
-                    <div className="text-right">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
-                        req.status === REQUEST_STATUS.ACCEPTED || req.status === 'Fulfilled'
-                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
-                          : req.status === REQUEST_STATUS.DECLINED || req.status === 'Cancelled'
-                          ? 'bg-red-500/10 text-red-400 border border-red-500/30'
-                          : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
-                      }`}>
-                        {req.status}
-                      </span>
+                if (filtered.length === 0) {
+                  return (
+                    <div className="bg-[#111111] border border-[#222222] rounded-3xl p-10 text-center max-w-md mx-auto space-y-3">
+                      <Send className="w-8 h-8 text-zinc-500 mx-auto" />
+                      <h4 className="text-base font-bold text-white">No responses found</h4>
+                      <p className="text-xs text-[#B0B0B0]">
+                        {responsesFilter === 'All'
+                          ? 'You have not responded to any hospital blood requirements yet.'
+                          : `No responses in ${responsesFilter} status.`}
+                      </p>
+                      <Link
+                        to="/donate-blood"
+                        className="inline-block px-5 py-2.5 rounded-xl bg-[#E50914] text-xs font-bold text-white shadow-md hover:bg-[#FF2B2B] transition-all"
+                      >
+                        Explore Hospital Blood Needs
+                      </Link>
                     </div>
-                  </div>
+                  );
+                }
 
-                  <div className="pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="text-xs text-[#B0B0B0] space-y-1">
-                      {req.note && <p className="italic">Note: "{req.note}"</p>}
-                      {(req.status === REQUEST_STATUS.ACCEPTED || req.status === 'Fulfilled') && req.requesterPhone && (
-                        <p className="text-emerald-400 font-mono font-bold flex items-center gap-1.5">
-                          <Phone className="w-3.5 h-3.5" />
-                          <span>Callback Contact: {req.requesterPhone}</span>
-                        </p>
+                return filtered.map((resp) => {
+                  const isPending = resp.status === 'PENDING_HOSPITAL_RESPONSE';
+                  const isAccepted = resp.status === 'ACCEPTED_BY_HOSPITAL';
+                  const isScheduled = resp.status === 'DONATION_SCHEDULED';
+                  const isCompleted = resp.status === 'DONATION_COMPLETED';
+                  const isDeclined = resp.status === 'DECLINED_BY_HOSPITAL';
+                  const isCancelled = resp.status === 'CANCELLED';
+
+                  return (
+                    <div
+                      key={resp.id}
+                      className="bg-[#111111] border border-[#222222] hover:border-[#E50914]/40 rounded-3xl p-6 transition-all shadow-md space-y-4"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/5">
+                        <div className="flex items-start gap-4">
+                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#FF2B2B] to-[#990000] flex items-center justify-center text-white font-black text-xl flex-shrink-0 shadow-[0_0_15px_rgba(229,9,20,0.3)]">
+                            {resp.donor_blood_group || resp.bloodGroup}
+                          </div>
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2.5">
+                              <h4 className="text-lg font-bold text-white">{resp.hospital_name || resp.hospitalName}</h4>
+                              <span className="px-2 py-0.5 rounded bg-white/5 text-red-400 font-mono text-[10px] font-bold border border-white/10">
+                                {resp.response_code}
+                              </span>
+                              <span
+                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                                  isCompleted
+                                    ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+                                    : isScheduled
+                                    ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40'
+                                    : isAccepted
+                                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                                    : isDeclined
+                                    ? 'bg-zinc-700/40 text-zinc-400 border border-zinc-600/40'
+                                    : isCancelled
+                                    ? 'bg-zinc-800 text-zinc-500 border border-zinc-700'
+                                    : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                                }`}
+                              >
+                                {isCompleted
+                                  ? 'Donation Completed ❤️'
+                                  : isScheduled
+                                  ? 'Donation Scheduled'
+                                  : isAccepted
+                                  ? 'Accepted by Hospital'
+                                  : isDeclined
+                                  ? 'Declined by Hospital'
+                                  : isCancelled
+                                  ? 'Cancelled'
+                                  : 'Pending Hospital Response'}
+                              </span>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-[#B0B0B0] mt-1.5">
+                              <Building className="w-3.5 h-3.5 text-[#E50914]" />
+                              <span>{resp.hospital_name || resp.hospitalName}</span>
+                              <span>•</span>
+                              <span>{resp.donor_district || resp.district}</span>
+                              {resp.requiredDate && (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-zinc-400 font-mono">Needed By: {resp.requiredDate}</span>
+                                </>
+                              )}
+                              <span>•</span>
+                              <span className="text-zinc-500 text-[11px] font-mono">
+                                Responded on {new Date(resp.responded_at || resp.created_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Action: Cancel if pending */}
+                        {isPending && (
+                          <button
+                            disabled={cancellingResponseId === resp.id}
+                            onClick={() => handleCancelResponse(resp.id)}
+                            className="px-4 py-2 rounded-xl bg-white/5 hover:bg-red-500/20 text-[#B0B0B0] hover:text-red-400 border border-white/10 hover:border-red-500/30 text-xs font-semibold transition-all disabled:opacity-50"
+                          >
+                            {cancellingResponseId === resp.id ? 'Cancelling...' : 'Cancel Response'}
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Donor Message if attached */}
+                      {resp.donor_message && (
+                        <div className="text-xs text-zinc-300 bg-white/[0.02] border border-white/5 rounded-xl p-3">
+                          <span className="text-zinc-500 font-semibold block text-[10px] uppercase tracking-wider mb-0.5">Your Note:</span>
+                          "{resp.donor_message}"
+                        </div>
+                      )}
+
+                      {/* Hospital Accepted / Scheduled Directions */}
+                      {(isAccepted || isScheduled) && (
+                        <div className="p-4 rounded-2xl bg-emerald-950/20 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                          <div className="space-y-1">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block">
+                              {isScheduled ? 'Donation Appointment Confirmed' : 'Hospital Accepted Your Response'}
+                            </span>
+                            <p className="text-white font-semibold">
+                              Please report to <strong className="text-emerald-300">{resp.hospital_name}</strong> Blood Bank Unit.
+                            </p>
+                            {isScheduled && resp.scheduled_at && (
+                              <p className="text-sky-300 font-mono">
+                                Scheduled Time: {new Date(resp.scheduled_at).toLocaleString()}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Completed Badge */}
+                      {isCompleted && (
+                        <div className="p-3.5 rounded-2xl bg-purple-950/20 border border-purple-500/30 text-xs text-purple-300 flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                          <span>This clinical blood donation was successfully completed and added to your verified medical donation history.</span>
+                        </div>
                       )}
                     </div>
+                  );
+                });
+              })()}
+            </div>
+          </div>
+        )}
 
-                    {(req.status === REQUEST_STATUS.PENDING || req.status === 'Open') ? (
-                      <div className="flex items-center gap-2.5">
-                        <button
-                          onClick={() => handleRequestAction(req.id, REQUEST_STATUS.ACCEPTED)}
-                          className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-[0_0_15px_rgba(16,185,129,0.4)]"
-                        >
-                          <Check className="w-4 h-4" />
-                          <span>Accept Request</span>
-                        </button>
-                        <button
-                          onClick={() => handleRequestAction(req.id, REQUEST_STATUS.DECLINED)}
-                          className="px-4 py-2.5 rounded-xl bg-[#1c1c1c] hover:bg-[#252525] text-[#B0B0B0] hover:text-white border border-white/10 text-xs font-semibold transition-all flex items-center gap-1.5"
-                        >
-                          <X className="w-4 h-4" />
-                          <span>Decline</span>
-                        </button>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-[#737373] italic">
-                        Action completed on {new Date().toLocaleDateString()}
-                      </span>
-                    )}
+        {/* ====================================================
+            TAB: DONATION HISTORY (Dedicated Tab View)
+            ==================================================== */}
+        {activeTab === 'Donation History' && (
+          <div className="space-y-6 mt-8 max-w-3xl animate-fadeIn">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-2xl font-black text-white tracking-tight">Donation History</h3>
+                <p className="text-sm text-[#B0B0B0] mt-1">
+                  Verified record of voluntary blood donations and hospital transfusions.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-[#111111] border border-[#222222] rounded-3xl p-6 sm:p-8 space-y-4">
+              {donationHistoryList.map((item, idx) => (
+                <div key={idx} className="p-4 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <span className="text-xs font-mono text-[#FF2B2B]">{item.date}</span>
+                    <h5 className="text-sm font-bold text-white">{item.place}</h5>
+                    <span className="text-xs text-zinc-400 block">{item.type}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold font-mono">
+                      {item.units}
+                    </span>
+                    <span className="text-[10px] text-zinc-500 block mt-1">Verified Donation</span>
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* ====================================================
+            TAB 2: DONATION REQUESTS (Accept / Decline Workflow)
+            ==================================================== */}
+        {activeTab === 'Donation Requests' && (
+          <div className="space-y-8 mt-8">
+            <div>
+              <h3 className="text-2xl font-black text-white tracking-tight">Donation Requests & Hospital Matches</h3>
+              <p className="text-sm text-[#B0B0B0] mt-1">
+                Patients and hospitals matched with your blood group for emergency transfusion support.
+              </p>
+            </div>
+
+            {/* Section 1: Automated Matches from Blood Requests */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Heart className="w-4 h-4 text-[#FF2B2B]" />
+                  <span>Automated Blood Request Matches ({donorMatches.length})</span>
+                </h4>
+                <span className="text-xs text-[#737373]">Matched based on blood group compatibility and district</span>
+              </div>
+
+              {donorMatches.length > 0 ? (
+                donorMatches.map((match) => {
+                  const req = match.request;
+                  const isContactRequested = match.match_status === 'CONTACT_REQUESTED';
+                  const isAccepted = match.match_status === 'ACCEPTED';
+                  const isDeclined = match.match_status === 'DECLINED';
+                  const isResponding = respondingMatchId === match.id;
+
+                  return (
+                    <div
+                      key={match.id}
+                      className={`bg-[#111111] border rounded-3xl p-6 transition-all shadow-md ${
+                        isContactRequested
+                          ? 'border-[#E50914] shadow-[0_0_25px_rgba(229,9,20,0.25)]'
+                          : isAccepted
+                          ? 'border-emerald-500/40'
+                          : 'border-[#222222] hover:border-[#E50914]/40'
+                      }`}
+                    >
+                      {/* Urgent Seeker Contact Alert Banner */}
+                      {isContactRequested && (
+                        <div className="mb-4 p-3 rounded-2xl bg-gradient-to-r from-red-950/80 to-red-900/40 border border-red-500/50 flex items-center gap-3">
+                          <span className="w-2.5 h-2.5 rounded-full bg-[#E50914] animate-ping flex-shrink-0" />
+                          <div className="text-xs">
+                            <strong className="text-white block font-bold">🚨 Urgent Contact Requested by Seeker</strong>
+                            <span className="text-red-200">The patient's family has specifically requested your voluntary donation for this urgent transfusion.</span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/5">
+                        <div className="flex items-start gap-4">
+                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#FF2B2B] to-[#990000] flex items-center justify-center text-white font-black text-xl flex-shrink-0">
+                            {match.bloodGroup || req?.blood_group || displayBlood}
+                          </div>
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2.5">
+                              <h4 className="text-lg font-bold text-white">{match.patientName || req?.patient_name || 'Patient'}</h4>
+                              <span className="px-2 py-0.5 rounded bg-white/5 text-red-400 font-mono text-[10px] font-bold border border-white/10">
+                                {match.request_code || req?.request_code}
+                              </span>
+                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                                isAccepted
+                                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                                  : isDeclined
+                                  ? 'bg-zinc-700/40 text-zinc-400 border border-zinc-600/40'
+                                  : isContactRequested
+                                  ? 'bg-red-500/20 text-red-300 border border-red-500/50 animate-pulse'
+                                  : 'bg-sky-500/20 text-sky-300 border border-sky-500/40'
+                              }`}>
+                                {isContactRequested ? 'Contact Requested' : match.match_status}
+                              </span>
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-red-500/20 text-red-400 border border-red-500/40">
+                                {match.urgency || req?.urgency || 'Urgent'}
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-[#B0B0B0] mt-1.5">
+                              <Building className="w-3.5 h-3.5 text-[#E50914]" />
+                              <span>{match.hospital || req?.hospital_name}</span>
+                              <span>•</span>
+                              <span>{match.city || req?.district || req?.city}</span>
+                              <span>•</span>
+                              <span className="font-bold text-white">{match.unitsRequired || req?.units_required || 1} Units Needed</span>
+                              {match.requiredDate && (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-zinc-400 font-mono">Needed by: {match.requiredDate}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Actions / Status */}
+                        <div>
+                          {isAccepted ? (
+                            <span className="px-3 py-1.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-bold inline-flex items-center gap-1.5">
+                              <CheckCircle2 className="w-4 h-4" />
+                              <span>Donation Accepted</span>
+                            </span>
+                          ) : isDeclined ? (
+                            <span className="px-3 py-1.5 rounded-xl bg-zinc-800 text-zinc-400 border border-zinc-700 text-xs font-semibold">
+                              Declined
+                            </span>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <button
+                                disabled={isResponding}
+                                onClick={() => handleMatchResponse(match.id, 'ACCEPTED')}
+                                className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-[0_0_15px_rgba(16,185,129,0.4)] disabled:opacity-50"
+                              >
+                                {isResponding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                                <span>Accept Match</span>
+                              </button>
+                              <button
+                                disabled={isResponding}
+                                onClick={() => handleMatchResponse(match.id, 'DECLINED')}
+                                className="px-4 py-2.5 rounded-xl bg-[#1c1c1c] hover:bg-[#252525] text-[#B0B0B0] hover:text-white border border-white/10 text-xs font-semibold transition-all flex items-center gap-1.5 disabled:opacity-50"
+                              >
+                                <X className="w-4 h-4" />
+                                <span>Decline</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Unlocked Contact Details if Accepted */}
+                      {isAccepted && (
+                        <div className="mt-4 p-4 rounded-2xl bg-emerald-950/20 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="text-xs space-y-1">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 block">
+                              Transfusion Contact Unlocked
+                            </span>
+                            <p className="text-white font-bold">
+                              Patient / Requester: {req?.patient_name || match.patientName}
+                            </p>
+                            <div className="text-[#B0B0B0] flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xs mt-1">
+                              <span>Requester Phone: <strong className="text-emerald-300">{req?.contact_number || req?.requester_phone || req?.requesterPhone || '+91 98421 XXXXX'}</strong></span>
+                              {(req?.requester_email || req?.requesterEmail || req?.email) && (
+                                <span>Requester Email: <strong className="text-emerald-300 break-all">{req?.requester_email || req?.requesterEmail || req?.email}</strong></span>
+                              )}
+                              {req?.hospital_contact && (
+                                <span>Hospital Desk: <strong className="text-emerald-300">{req?.hospital_contact}</strong></span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2 self-start sm:self-center">
+                            {(req?.contact_number || req?.requester_phone || req?.requesterPhone || req?.hospital_contact) && (
+                              <a
+                                href={`tel:${req?.contact_number || req?.requester_phone || req?.requesterPhone || req?.hospital_contact}`}
+                                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition-all shadow-md"
+                              >
+                                <Phone className="w-3.5 h-3.5" />
+                                <span>Call</span>
+                              </a>
+                            )}
+                            {(req?.requester_email || req?.requesterEmail || req?.email) && (
+                              <a
+                                href={`mailto:${req?.requester_email || req?.requesterEmail || req?.email}`}
+                                className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white font-bold text-xs flex items-center gap-1.5 border border-white/10 transition-all shadow-md break-all"
+                              >
+                                <Mail className="w-3.5 h-3.5" />
+                                <span>Email</span>
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="p-8 text-center bg-[#111111] border border-white/5 rounded-2xl text-xs text-[#737373]">
+                  No automated blood request matches right now. When patients in your district need your blood group, you will be notified here.
+                </div>
+              )}
+            </div>
+
+            {/* Section 2: Direct Connection Requests */}
+            <div className="space-y-4 pt-4 border-t border-white/10">
+              <div className="flex items-center justify-between">
+                <h4 className="text-lg font-bold text-white flex items-center gap-2">
+                  <User className="w-4 h-4 text-[#FF2B2B]" />
+                  <span>Direct Patient Connection Requests ({directRequests.length})</span>
+                </h4>
+                <span className="text-xs text-[#737373]">Direct requests sent through donor search profile</span>
+              </div>
+
+              <div className="space-y-4">
+                {directRequests.map((req) => (
+                  <div
+                    key={req.id}
+                    className="bg-[#111111] border border-[#222222] hover:border-[#E50914]/50 rounded-3xl p-6 transition-all shadow-md"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/5">
+                      <div className="flex items-start gap-4">
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#FF2B2B] to-[#990000] flex items-center justify-center text-white font-black text-xl flex-shrink-0">
+                          {req.donorBloodGroup || displayBlood}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2.5">
+                            <h4 className="text-lg font-bold text-white">{req.patientName}</h4>
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-red-500/20 text-red-400 border border-red-500/40">
+                              {req.urgency}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-[#B0B0B0] mt-1">
+                            <Building className="w-3.5 h-3.5 text-[#E50914]" />
+                            <span>{req.hospital}</span>
+                            <span>•</span>
+                            <span>{req.city}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
+                          req.status === REQUEST_STATUS.ACCEPTED || req.status === 'Fulfilled'
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                            : req.status === REQUEST_STATUS.DECLINED || req.status === 'Cancelled'
+                            ? 'bg-red-500/10 text-red-400 border border-red-500/30'
+                            : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                        }`}>
+                          {req.status}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="text-xs text-[#B0B0B0] space-y-1">
+                        {req.note && <p className="italic">Note: "{req.note}"</p>}
+                        {(req.status === REQUEST_STATUS.ACCEPTED || req.status === 'Fulfilled') && (
+                          <div className="flex flex-wrap items-center gap-3 pt-1">
+                            {req.requesterPhone && (
+                              <a
+                                href={`tel:${req.requesterPhone}`}
+                                className="text-emerald-400 font-mono font-bold flex items-center gap-1.5 hover:underline"
+                              >
+                                <Phone className="w-3.5 h-3.5" />
+                                <span>Phone: {req.requesterPhone}</span>
+                              </a>
+                            )}
+                            {(req.requesterEmail || req.email) && (
+                              <a
+                                href={`mailto:${req.requesterEmail || req.email}`}
+                                className="text-emerald-400 font-medium text-xs flex items-center gap-1.5 hover:underline break-all"
+                              >
+                                <Mail className="w-3.5 h-3.5" />
+                                <span>Email: {req.requesterEmail || req.email}</span>
+                              </a>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {(req.status === REQUEST_STATUS.PENDING || req.status === 'Open') ? (
+                        <div className="flex items-center gap-2.5">
+                          <button
+                            onClick={() => handleRequestAction(req.id, REQUEST_STATUS.ACCEPTED)}
+                            className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-[0_0_15px_rgba(16,185,129,0.4)]"
+                          >
+                            <Check className="w-4 h-4" />
+                            <span>Accept Request</span>
+                          </button>
+                          <button
+                            onClick={() => handleRequestAction(req.id, REQUEST_STATUS.DECLINED)}
+                            className="px-4 py-2.5 rounded-xl bg-[#1c1c1c] hover:bg-[#252525] text-[#B0B0B0] hover:text-white border border-white/10 text-xs font-semibold transition-all flex items-center gap-1.5"
+                          >
+                            <X className="w-4 h-4" />
+                            <span>Decline</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-[#737373] italic">
+                          Action completed on {new Date().toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -1040,19 +1659,66 @@ export default function DonorDashboard() {
           </div>
         )}
 
+
+
         {/* ====================================================
-            TAB 4: MY PROFILE
+            TAB 5: NOTIFICATIONS
             ==================================================== */}
-        {activeTab === 'My Profile' && (
+        {activeTab === 'Notifications' && (
           <div className="space-y-6 mt-8 max-w-2xl">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-2xl font-black text-white tracking-tight">User Profile</h3>
-                <p className="text-sm text-[#B0B0B0] mt-1">Review your registered details and donation information.</p>
+                <h3 className="text-2xl font-black text-white tracking-tight">Notification History</h3>
+                <p className="text-sm text-[#B0B0B0] mt-1">Real-time alerts, hospital requests, and connection updates.</p>
+              </div>
+              <button
+                onClick={() => {
+                  markAllNotificationsAsRead();
+                  setNotifications(getStoredNotifications());
+                  showToast('All notifications marked as read', 'info');
+                }}
+                className="text-xs font-bold text-[#FF2B2B] hover:underline"
+              >
+                Mark all read
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {notifications.map((n) => (
+                <div
+                  key={n.id}
+                  className={`p-4 rounded-2xl border transition-all ${
+                    n.read ? 'bg-[#121212] border-white/5 opacity-85' : 'bg-[#1a0a0c] border-[#E50914]/40'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h5 className="text-xs font-bold text-white">{n.title}</h5>
+                      <p className="text-xs text-[#B0B0B0] mt-1 leading-relaxed">{n.message}</p>
+                      <span className="text-[10px] text-[#737373] mt-2 block font-mono">
+                        {new Date(n.timestamp).toLocaleDateString()} at {new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ====================================================
+            TAB: SETTINGS & ACCOUNT PROFILE
+            ==================================================== */}
+        {(activeTab === 'Settings' || activeTab === 'My Profile') && (
+          <div className="space-y-6 mt-8 max-w-2xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-2xl font-black text-white tracking-tight">Account & Settings</h3>
+                <p className="text-sm text-[#B0B0B0] mt-1">Review your registered details, donation status, and privacy permissions.</p>
               </div>
               <button
                 type="button"
-                id="edit-profile-tab-button"
+                id="edit-profile-settings-button"
                 onClick={() => {
                   setProfileFormData({
                     bloodGroup: profile?.blood_group || '',
@@ -1073,7 +1739,9 @@ export default function DonorDashboard() {
               </button>
             </div>
 
+            {/* Profile Overview Card */}
             <div className="bg-[#111111] border border-[#222222] rounded-3xl p-6 sm:p-8 space-y-5">
+              <h4 className="text-xs font-bold text-[#FF2B2B] uppercase tracking-wider">Registered Profile Details</h4>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <span className="text-xs text-[#737373] uppercase block font-bold">Full Name</span>
@@ -1145,62 +1813,11 @@ export default function DonorDashboard() {
                 </div>
               )}
             </div>
-          </div>
-        )}
 
-        {/* ====================================================
-            TAB 5: NOTIFICATIONS
-            ==================================================== */}
-        {activeTab === 'Notifications' && (
-          <div className="space-y-6 mt-8 max-w-2xl">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-2xl font-black text-white tracking-tight">Notification History</h3>
-                <p className="text-sm text-[#B0B0B0] mt-1">Real-time alerts, hospital requests, and connection updates.</p>
-              </div>
-              <button
-                onClick={() => {
-                  markAllNotificationsAsRead();
-                  setNotifications(getStoredNotifications());
-                  showToast('All notifications marked as read', 'info');
-                }}
-                className="text-xs font-bold text-[#FF2B2B] hover:underline"
-              >
-                Mark all read
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              {notifications.map((n) => (
-                <div
-                  key={n.id}
-                  className={`p-4 rounded-2xl border transition-all ${
-                    n.read ? 'bg-[#121212] border-white/5 opacity-85' : 'bg-[#1a0a0c] border-[#E50914]/40'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h5 className="text-xs font-bold text-white">{n.title}</h5>
-                      <p className="text-xs text-[#B0B0B0] mt-1 leading-relaxed">{n.message}</p>
-                      <span className="text-[10px] text-[#737373] mt-2 block font-mono">
-                        {new Date(n.timestamp).toLocaleDateString()} at {new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ====================================================
-            TAB 6: SETTINGS (Consent & Privacy)
-            ==================================================== */}
-        {activeTab === 'Settings' && (
-          <div className="space-y-6 mt-8 max-w-2xl">
+            {/* Privacy & Consent Settings Card */}
             <div>
-              <h3 className="text-2xl font-black text-white tracking-tight">Privacy & Consent Settings</h3>
-              <p className="text-sm text-[#B0B0B0] mt-1">Configure clinical data sharing and alert permissions.</p>
+              <h4 className="text-base font-bold text-white mb-2">Privacy & Consent Settings</h4>
+              <p className="text-xs text-[#B0B0B0]">Configure clinical data sharing and alert permissions.</p>
             </div>
 
             <div className="bg-[#111111] border border-[#222222] rounded-3xl p-6 sm:p-8 space-y-6">
@@ -1519,6 +2136,17 @@ export default function DonorDashboard() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Request Details & Matches Timeline Modal */}
+      {selectedModalRequest && (
+        <RequestDetailsModal
+          isOpen={Boolean(selectedModalRequest)}
+          onClose={() => setSelectedModalRequest(null)}
+          requestCode={selectedModalRequest.requestCode || selectedModalRequest.code}
+          requestId={selectedModalRequest.id}
+          onStatusChanged={loadData}
+        />
       )}
     </div>
   );

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, Calendar, Clock, ShieldCheck, Eye, Send, CheckCircle2, AlertCircle } from 'lucide-react';
+import { MapPin, Calendar, Clock, ShieldCheck, Eye, Send, CheckCircle2, AlertCircle, Phone, Mail } from 'lucide-react';
 import DonorDetailsModal from './DonorDetailsModal';
 import ContactDonorModal from './ContactDonorModal';
 import { getDonorEligibility, MEDICAL_ELIGIBILITY_DISCLAIMER } from '../services/eligibilityService';
@@ -9,8 +9,9 @@ export default function DonorCard({ donor, onContactClick }) {
   const [showContact, setShowContact] = useState(false);
 
   const eligibility = donor.eligibility || getDonorEligibility(donor);
-  const isAvailable = donor.availability === 'Available Now';
+  const isAvailable = donor.status === 'Available' || donor.availability === 'Available Now';
   const isEligibleNow = eligibility.isEligible;
+  const statusDisplay = donor.status || donor.availability || 'Available';
 
   return (
     <>
@@ -24,7 +25,7 @@ export default function DonorCard({ donor, onContactClick }) {
           <div className="relative flex-shrink-0">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#FF2B2B] via-[#E50914] to-[#8a0006] flex items-center justify-center shadow-[0_0_20px_rgba(229,9,20,0.45)] group-hover:shadow-[0_0_25px_rgba(229,9,20,0.7)] transition-all">
               <span className="text-2xl font-black text-white tracking-wider">
-                {donor.bloodGroup}
+                {donor.blood_group || donor.bloodGroup}
               </span>
             </div>
           </div>
@@ -44,7 +45,7 @@ export default function DonorCard({ donor, onContactClick }) {
                     isAvailable ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
                   }`}
                 />
-                {donor.availability}
+                {statusDisplay}
               </span>
             </div>
 
@@ -64,8 +65,8 @@ export default function DonorCard({ donor, onContactClick }) {
           </div>
         </div>
 
-        {/* Center: Donor Name, Location, Last Donation */}
-        <div className="space-y-2 mb-6">
+        {/* Center: Donor Name, Location, Address, Phone */}
+        <div className="space-y-2.5 mb-6">
           <div className="flex items-center gap-2">
             <h3 className="text-xl font-bold text-white group-hover:text-[#FF2B2B] transition-colors">
               {donor.name}
@@ -75,30 +76,62 @@ export default function DonorCard({ donor, onContactClick }) {
             )}
           </div>
 
-          <div className="flex items-center gap-1.5 text-sm text-[#B0B0B0]">
-            <MapPin className="w-4 h-4 text-[#E50914] flex-shrink-0" />
-            <span>{donor.district || donor.city}</span>
-            {donor.area && <span className="text-[#737373]">({donor.area})</span>}
+          {/* District and Address */}
+          <div className="flex items-start gap-1.5 text-sm text-[#B0B0B0]">
+            <MapPin className="w-4 h-4 text-[#E50914] flex-shrink-0 mt-0.5" />
+            <div>
+              <span className="font-semibold text-white">{donor.district || donor.city}</span>
+              {donor.address && (
+                <p className="text-xs text-[#8E8E93] mt-0.5 leading-relaxed">{donor.address}</p>
+              )}
+              {donor.area && !donor.address && (
+                <span className="text-[#737373]"> ({donor.area})</span>
+              )}
+            </div>
           </div>
 
-          <div className="flex items-center gap-1.5 text-xs text-[#B0B0B0] pt-1">
-            <Calendar className="w-3.5 h-3.5 text-[#737373]" />
-            <span>Last Donation:</span>
-            <span className="text-white font-medium">
-              {donor.lastDonationDate
-                ? new Date(donor.lastDonationDate).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })
-                : 'No prior record'}
-            </span>
+          {/* Phone Number and Call Button */}
+          <div className="flex items-center justify-between text-xs text-[#B0B0B0] pt-2 border-t border-white/5">
+            <div className="flex items-center gap-1.5 font-mono">
+              <Phone className="w-3.5 h-3.5 text-[#E50914] flex-shrink-0" />
+              <span className="text-white font-medium">{donor.displayPhone || donor.phone}</span>
+            </div>
+            {donor.phone && (
+              <a
+                href={`tel:${String(donor.phone).replace(/[^\d+]/g, '')}`}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#E50914]/15 hover:bg-[#E50914]/30 text-[#FF2B2B] hover:text-white border border-[#E50914]/30 text-xs font-bold transition-all"
+                title={`Call ${donor.name}`}
+              >
+                <Phone className="w-3 h-3" />
+                <span>Call</span>
+              </a>
+            )}
           </div>
 
-          {/* Privacy-Safe Contact Preview (Masked for privacy compliance) */}
-          <div className="text-[11px] text-[#737373] font-mono">
-            Contact: <span className="text-[#B0B0B0]">{donor.displayPhone || donor.phone}</span> (Consent Protected)
-          </div>
+          {/* Email Address and Mail Button */}
+          {(donor.displayEmail || donor.email) && (
+            <div className="flex items-center justify-between text-xs text-[#B0B0B0] pt-1.5 min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0 pr-2 overflow-hidden">
+                <Mail className="w-3.5 h-3.5 text-[#E50914] flex-shrink-0" />
+                <span
+                  className="text-white font-medium truncate break-all text-[11px]"
+                  title={donor.displayEmail || donor.email}
+                >
+                  {donor.displayEmail || donor.email}
+                </span>
+              </div>
+              {donor.email && !donor.isRareBloodProtected && (
+                <a
+                  href={`mailto:${donor.email}`}
+                  className="flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-[#B0B0B0] hover:text-white border border-white/10 text-xs font-medium transition-all"
+                  title={`Email ${donor.name}`}
+                >
+                  <Mail className="w-3 h-3 text-[#E50914]" />
+                  <span>Email</span>
+                </a>
+              )}
+            </div>
+          )}
 
           {donor.isRareBloodProtected && (
             <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[10px] text-amber-300">

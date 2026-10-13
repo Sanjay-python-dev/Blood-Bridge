@@ -2,6 +2,7 @@ import React from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { useAuth, USER_ROLES } from '../context/AuthContext';
 import { ShieldAlert, Lock, ArrowLeft, Loader2 } from 'lucide-react';
+import BloodLoadingDrop from './animations/BloodLoadingDrop';
 
 export default function ProtectedRoute({ children, allowedRoles = [USER_ROLES.USER] }) {
   const { user, role, loading } = useAuth();
@@ -9,7 +10,7 @@ export default function ProtectedRoute({ children, allowedRoles = [USER_ROLES.US
   if (loading) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center gap-4 bg-[#050505] text-white">
-        <Loader2 className="w-10 h-10 text-[#FF2B2B] animate-spin" />
+        <BloodLoadingDrop />
         <p className="text-sm text-[#B0B0B0] font-medium tracking-wide">
           Verifying security authorization credentials...
         </p>
@@ -20,9 +21,12 @@ export default function ProtectedRoute({ children, allowedRoles = [USER_ROLES.US
   // Not authenticated
   if (!user) {
     if (allowedRoles.includes(USER_ROLES.AUTHORIZED_HOSPITAL)) {
-      return <Navigate to="/hospital-portal" replace />;
+      return <Navigate to="/login?type=hospital" replace />;
     }
-    return <Navigate to="/login" replace />;
+    if (allowedRoles.includes(USER_ROLES.ADMIN)) {
+      return <Navigate to="/login?type=admin" replace />;
+    }
+    return <Navigate to="/login?type=portal" replace />;
   }
 
   // Check if role is authorized (donor and seeker are standard USER clearances)
@@ -53,8 +57,8 @@ export default function ProtectedRoute({ children, allowedRoles = [USER_ROLES.US
           <div className="space-y-3">
             {allowedRoles.includes(USER_ROLES.AUTHORIZED_HOSPITAL) && (
               <Link
-                to="/hospital-portal"
-                className="block w-full py-3 rounded-xl bg-[#E50914] hover:bg-[#FF2B2B] text-white text-xs font-bold shadow-[0_0_20px_rgba(229,9,20,0.5)] transition-all"
+                to="/login?type=hospital"
+                className="block w-full py-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-[0_0_20px_rgba(2,132,199,0.5)] transition-all"
               >
                 Sign In to Hospital Portal
               </Link>
@@ -62,8 +66,8 @@ export default function ProtectedRoute({ children, allowedRoles = [USER_ROLES.US
 
             {allowedRoles.includes(USER_ROLES.ADMIN) && (
               <Link
-                to="/login"
-                className="block w-full py-3 rounded-xl bg-[#E50914] hover:bg-[#FF2B2B] text-white text-xs font-bold shadow-[0_0_20px_rgba(229,9,20,0.5)] transition-all"
+                to="/login?type=admin"
+                className="block w-full py-3 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-[0_0_20px_rgba(217,119,6,0.5)] transition-all"
               >
                 Admin Authentication Desk
               </Link>

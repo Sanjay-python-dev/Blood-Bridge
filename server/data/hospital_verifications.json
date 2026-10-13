@@ -1,0 +1,56 @@
+[
+  {
+    "id": "hverif-1789802967877",
+    "hospital_id": "Apollo Speciality Greams Road",
+    "hospital_name": "Apollo Speciality Hospital Greams Road",
+    "verification_status": "VERIFIED",
+    "verified_by": "admin_officer",
+    "verified_at": "2026-09-19T07:29:27.877Z",
+    "updated_at": "2026-09-19T07:29:27.877Z"
+  },
+  {
+    "id": "hverif-karur-131",
+    "hospital_id": "hosp-KAR-131",
+    "hospital_name": "Government Medical College Hospital, Karur",
+    "verification_status": "VERIFIED",
+    "verified_by": "state_health_authority",
+    "verified_at": "2026-09-18T05:00:00.000Z",
+    "updated_at": "2026-09-18T05:00:00.000Z"
+  },
+  {
+    "id": "hverif-coimbatore-029",
+    "hospital_id": "hosp-COI-029",
+    "hospital_name": "Kovai Medical Center and Hospital",
+    "verification_status": "VERIFIED",
+    "verified_by": "state_health_authority",
+    "verified_at": "2026-09-18T05:00:00.000Z",
+    "updated_at": "2026-09-18T05:00:00.000Z"
+  },
+  {
+    "id": "hverif-madurai-001",
+    "hospital_id": "hosp-MAD-001",
+    "hospital_name": "Meenakshi Mission Hospital and Research Centre",
+    "verification_status": "VERIFIED",
+    "verified_by": "state_health_authority",
+    "verified_at": "2026-09-18T05:00:00.000Z",
+    "updated_at": "2026-09-18T05:00:00.000Z"
+  },
+  {
+    "id": "hverif-trichy-001",
+    "hospital_id": "hosp-TRI-001",
+    "hospital_name": "Kauvery Hospital",
+    "verification_status": "VERIFIED",
+    "verified_by": "state_health_authority",
+    "verified_at": "2026-09-18T05:00:00.000Z",
+    "updated_at": "2026-09-18T05:00:00.000Z"
+  },
+  {
+    "id": "hverif-salem-001",
+    "hospital_id": "hosp-SAL-001",
+    "hospital_name": "Government Mohan Kumaramangalam Medical College Hospital",
+    "verification_status": "VERIFIED",
+    "verified_by": "state_health_authority",
+    "verified_at": "2026-09-18T05:00:00.000Z",
+    "updated_at": "2026-09-18T05:00:00.000Z"
+  }
+]

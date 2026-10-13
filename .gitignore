@@ -1,29 +1,69 @@
-# Logs
-logs
-*.log
+# =============================================================================
+# BloodBridge – Smart Donor Connect  |  .gitignore
+# =============================================================================
+
+# ─── Node.js ─────────────────────────────────────────────────────────────────
+node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+*.log
 
-node_modules
-dist
-dist-ssr
-*.local
+# ─── Build Output ────────────────────────────────────────────────────────────
+dist/
+dist-ssr/
+.output/
+
+# ─── Environment / Secrets ───────────────────────────────────────────────────
+# Root app secrets
 .env
 .env.*
 !.env.example
 
-# Editor directories and files
+# Firebase Cloud Functions secrets
+functions/.env
+functions/.env.*
+!functions/.env.example
+
+# ─── Firebase ────────────────────────────────────────────────────────────────
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+firestore-debug.log
+ui-debug.log
+functions/lib/
+
+# ─── Supabase ────────────────────────────────────────────────────────────────
+supabase/.temp/
+
+# ─── Editor / OS Junk ────────────────────────────────────────────────────────
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+
+# ─── Python ──────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+
+# ─── Generated / Raw Server Data ─────────────────────────────────────────────
 server/data/raw_hospitals.json
+server/data/bombay_audit.json
 hospital_data/
+
+# ─── Local Development Test Scripts ──────────────────────────────────────────
+# Kept locally for manual QA; never committed to the repo
+tests/
+
+# ─── Misc ────────────────────────────────────────────────────────────────────
+*.local
+*.tsbuildinfo

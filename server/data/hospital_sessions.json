@@ -47,5 +47,26 @@
     "hospital_id": "hosp-TIR-431",
     "created_at": "2026-09-17T07:10:59.898Z",
     "expires_at": "2026-09-24T07:10:59.898Z"
+  },
+  {
+    "id": "sess-1791192856580",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJob3NwaXRhbElkIjoiaG9zcC1NQUQtMTYxIiwidXNlcktleSI6IlROMTMtTUFEVVItMDAxIiwiaWF0IjoxNzkxMTkyODU2LCJleHAiOjE3OTE3OTc2NTZ9.ScW6RI7AY2_ngE0O5KmN7mxoD8nG0gdDxksohWWgWiQ",
+    "hospital_id": "hosp-MAD-161",
+    "created_at": "2026-10-05T09:34:16.580Z",
+    "expires_at": "2026-10-12T09:34:16.580Z"
+  },
+  {
+    "id": "sess-1791390084175",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJob3NwaXRhbElkIjoiaG9zcC1LQVItMTMxIiwidXNlcktleSI6IlROMTEtS0FSVVItMDAxIiwiaWF0IjoxNzkxMzkwMDg0LCJleHAiOjE3OTE5OTQ4ODR9.MsFM7EQQOrTbYVXKffj8bvBz03q-6MaCMHVn28Pa5CI",
+    "hospital_id": "hosp-KAR-131",
+    "created_at": "2026-10-07T16:21:24.175Z",
+    "expires_at": "2026-10-14T16:21:24.175Z"
+  },
+  {
+    "id": "sess-1791391496556",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJob3NwaXRhbElkIjoiaG9zcC1LQVItMTMxIiwidXNlcktleSI6IlROMTEtS0FSVVItMDAxIiwiaWF0IjoxNzkxMzkxNDk2LCJleHAiOjE3OTE5OTYyOTZ9._nhOQ6IPkT0pkWTjxgGkYGr31tPanNPxWAQf_zVKmnc",
+    "hospital_id": "hosp-KAR-131",
+    "created_at": "2026-10-07T16:44:56.556Z",
+    "expires_at": "2026-10-14T16:44:56.556Z"
   }
 ]

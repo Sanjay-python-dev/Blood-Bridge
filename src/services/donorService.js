@@ -4,6 +4,7 @@ import { getDonorEligibility } from './eligibilityService';
 import { sanitizeDonorForViewer } from './privacyService';
 import { getSettings } from './settingsService';
 import { getCompatibleDonorBloodGroups } from './compatibilityService';
+import { loadDonors, filterDonors } from './demoDonorService';
 
 const DONORS_STORAGE_KEY = 'bloodbridge_donors_store';
 
@@ -11,12 +12,15 @@ export const getStoredDonors = () => {
   try {
     const raw = localStorage.getItem(DONORS_STORAGE_KEY);
     if (raw) {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length >= 900) {
+        return parsed;
+      }
     }
   } catch (e) {
     console.warn('Error reading donors from localStorage:', e);
   }
-  return fictionalDonorsDataset;
+  return loadDonors();
 };
 
 export const saveStoredDonors = (donors) => {
@@ -187,19 +191,20 @@ export const getDonors = async ({
       const compatibleGroups = getCompatibleDonorBloodGroups(matchCompatibleForRecipient);
       if (!compatibleGroups.includes(donor.bloodGroup)) return false;
     } else if (bloodGroup && bloodGroup !== 'All Groups') {
-      if (donor.bloodGroup !== bloodGroup) return false;
+      const donorBg = donor.bloodGroup || donor.blood_group;
+      if (donorBg !== bloodGroup) return false;
     }
 
     // Availability Filter
-    if (availability === 'Available Now' && donor.availability !== 'Available Now') {
+    if (availability === 'Available Now' && donor.availability !== 'Available Now' && donor.status !== 'Available') {
       return false;
     }
-    if (availability === 'Available Soon' && donor.availability !== 'Available Soon') {
+    if (availability === 'Available Soon' && donor.availability !== 'Available Soon' && donor.status !== 'On Call') {
       return false;
     }
 
     // Emergency Availability Filter
-    if (onlyEmergency && !donor.emergencyWillingness) {
+    if (onlyEmergency && !donor.emergencyWillingness && donor.status !== 'On Call') {
       return false;
     }
 
@@ -214,9 +219,10 @@ export const getDonors = async ({
       const q = searchQuery.toLowerCase();
       const matchName = (donor.name || '').toLowerCase().includes(q);
       const matchDist = (donor.district || donor.city || '').toLowerCase().includes(q);
-      const matchArea = (donor.area || '').toLowerCase().includes(q);
-      const matchBlood = (donor.bloodGroup || '').toLowerCase().includes(q);
-      if (!matchName && !matchDist && !matchArea && !matchBlood) {
+      const matchArea = (donor.area || donor.address || '').toLowerCase().includes(q);
+      const matchBlood = (donor.bloodGroup || donor.blood_group || '').toLowerCase().includes(q);
+      const matchPhone = (donor.phone || '').toLowerCase().includes(q);
+      if (!matchName && !matchDist && !matchArea && !matchBlood && !matchPhone) {
         return false;
       }
     }

@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { X, Send, ShieldAlert, CheckCircle2, Phone, Building, User, Clock, AlertCircle, Loader2 } from 'lucide-react';
+import { X, Send, ShieldAlert, CheckCircle2, Phone, Mail, Building, User, Clock, AlertCircle, Loader2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { createDirectDonationRequest } from '../services/requestService';
 import { showToast } from './Toast';
 
 export default function ContactDonorModal({ donor, onClose }) {
+  const { user, profile } = useAuth();
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -13,7 +15,8 @@ export default function ContactDonorModal({ donor, onClose }) {
     patientName: '',
     hospital: '',
     city: donor?.district || donor?.city || 'Karur',
-    phone: '',
+    phone: profile?.phone || '',
+    email: user?.email || profile?.email || '',
     urgency: 'Immediate',
     note: ''
   });
@@ -34,6 +37,7 @@ export default function ContactDonorModal({ donor, onClose }) {
         hospital: formData.hospital,
         city: formData.city,
         phone: formData.phone,
+        email: formData.email,
         urgency: formData.urgency,
         note: formData.note,
       });
@@ -135,7 +139,7 @@ export default function ContactDonorModal({ donor, onClose }) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-[#B0B0B0] uppercase mb-1">
                     Your Callback Phone *
@@ -152,18 +156,31 @@ export default function ContactDonorModal({ donor, onClose }) {
 
                 <div>
                   <label className="block text-xs font-semibold text-[#B0B0B0] uppercase mb-1">
-                    Urgency Level *
+                    Your Email / Gmail
                   </label>
-                  <select
-                    value={formData.urgency}
-                    onChange={(e) => setFormData({ ...formData, urgency: e.target.value })}
-                    className="w-full bg-[#161616] border border-[#333333] focus:border-[#E50914] rounded-xl px-3 py-2.5 text-sm text-white outline-none cursor-pointer"
-                  >
-                    <option value="Immediate">Critical (Within 2 hrs)</option>
-                    <option value="Today">Urgent (Today)</option>
-                    <option value="Tomorrow">Standard (24-48 hrs)</option>
-                  </select>
+                  <input
+                    type="email"
+                    placeholder="e.g. requester@gmail.com"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="w-full bg-[#161616] border border-[#333333] focus:border-[#E50914] rounded-xl px-4 py-2.5 text-sm text-white placeholder-[#555] outline-none"
+                  />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#B0B0B0] uppercase mb-1">
+                  Urgency Level *
+                </label>
+                <select
+                  value={formData.urgency}
+                  onChange={(e) => setFormData({ ...formData, urgency: e.target.value })}
+                  className="w-full bg-[#161616] border border-[#333333] focus:border-[#E50914] rounded-xl px-3 py-2.5 text-sm text-white outline-none cursor-pointer"
+                >
+                  <option value="Immediate">Critical (Within 2 hrs)</option>
+                  <option value="Today">Urgent (Today)</option>
+                  <option value="Tomorrow">Standard (24-48 hrs)</option>
+                </select>
               </div>
 
               <div>

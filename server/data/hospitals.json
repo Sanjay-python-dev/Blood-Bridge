@@ -11,7 +11,8 @@
     "password_hash": "$2b$10$tsjUXfq3xECebxGm1WVN5.9UFC8Ud.KRiJdsyCmGcABi91NcH7CbC",
     "is_active": true,
     "created_at": "2026-09-17T05:49:48.738Z",
-    "updated_at": "2026-09-17T05:49:48.740Z"
+    "updated_at": "2026-10-06T14:01:17.057Z",
+    "email": null
   },
   {
     "id": "hosp-ARI-002",
@@ -403,7 +404,8 @@
     "password_hash": "$2b$10$8duxB/WDPSj1JyoBY3Tnb.zZyiuBhnq8LgyzmQ6Cp8GTYvYnm/DSO",
     "is_active": true,
     "created_at": "2026-09-17T05:49:51.161Z",
-    "updated_at": "2026-09-17T05:49:51.161Z"
+    "updated_at": "2026-10-13T18:08:43.990Z",
+    "email": "hospitalB@gmail.com"
   },
   {
     "id": "hosp-COI-030",
@@ -1829,6 +1831,22 @@
     "longitude": 78.0946,
     "user_key": "TN11-KARUR-001",
     "password_hash": "$2b$10$.P94JBQ4LYLMqdcd/tqt8ObKgIwdz092Gmz9lYUhQ/BlhjM6xNxZ6",
+    "email": "hospitalA@gmail.com",
+    "is_active": true,
+    "created_at": "2026-09-17T05:50:00.218Z",
+    "updated_at": "2026-10-13T18:08:43.981Z"
+  },
+  {
+    "id": "hosp-COI-029",
+    "district": "Coimbatore",
+    "hospital_name": "Kovai Medical Center and Hospital",
+    "name": "Kovai Medical Center and Hospital",
+    "location": "Coimbatore",
+    "latitude": 11.055,
+    "longitude": 77.034,
+    "user_key": "TN03-COIMB-029",
+    "password_hash": "$2b$10$.P94JBQ4LYLMqdcd/tqt8ObKgIwdz092Gmz9lYUhQ/BlhjM6xNxZ6",
+    "email": "hospitalB@gmail.com",
     "is_active": true,
     "created_at": "2026-09-17T05:50:00.218Z",
     "updated_at": "2026-09-17T05:50:00.218Z"

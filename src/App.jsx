@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
@@ -11,13 +11,16 @@ import About from './pages/About';
 import FindBlood from './pages/FindBlood';
 import DonateBlood from './pages/DonateBlood';
 import RequestBlood from './pages/RequestBlood';
+import MyRequests from './pages/MyRequests';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import DonorDashboard from './pages/DonorDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import HospitalPortal from './pages/HospitalPortal';
 import HospitalDashboard from './pages/HospitalDashboard';
+import BombaySecureAccess from './pages/BombaySecureAccess';
 import Contact from './pages/Contact';
+import DevEmailTest from './pages/DevEmailTest';
 
 // Auth & Protection
 import { AuthProvider, USER_ROLES } from './context/AuthContext';
@@ -47,9 +50,21 @@ export default function App() {
               <Route path="/find-blood" element={<FindBlood />} />
               <Route path="/donate-blood" element={<DonateBlood />} />
               <Route path="/request-blood" element={<RequestBlood />} />
+              <Route
+                path="/my-requests"
+                element={
+                  <ProtectedRoute allowedRoles={[USER_ROLES.USER, USER_ROLES.DONOR, USER_ROLES.SEEKER, USER_ROLES.ADMIN]}>
+                    <MyRequests />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="/login" element={<Login />} />
+              <Route path="/admin" element={<Navigate to="/login?type=admin" replace />} />
               <Route path="/register" element={<Register />} />
               <Route path="/contact" element={<Contact />} />
+
+              {/* Bombay Blood Group Protected Access Gateway */}
+              <Route path="/bombay-access" element={<BombaySecureAccess />} />
 
               {/* Hospital Authorization Gateway */}
               <Route path="/hospital-portal" element={<HospitalPortal />} />
@@ -81,6 +96,9 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
+
+              {/* Development & Diagnostics: Transactional Email Test */}
+              <Route path="/dev/email-test" element={<DevEmailTest />} />
 
               {/* Fallback route to Home */}
               <Route path="*" element={<Home />} />

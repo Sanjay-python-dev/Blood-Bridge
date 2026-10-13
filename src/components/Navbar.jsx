@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Link, useLocation } from 'react-router-dom';
-import { Menu, X, Heart, ShieldAlert, User, LogIn, UserPlus, LogOut, Building, Bell } from 'lucide-react';
+import { Menu, X, Heart, ShieldAlert, User, LogIn, UserPlus, LogOut, Building, Bell, FileText } from 'lucide-react';
 import Logo from './Logo';
 import { useAuth, USER_ROLES } from '../context/AuthContext';
 import NotificationModal from './NotificationModal';
@@ -41,7 +41,12 @@ export default function Navbar() {
     setIsOpen(false);
   }, [location.pathname]);
 
-  const navLinks = [
+  const isHospitalPage = location.pathname.startsWith('/hospital') || role === USER_ROLES.AUTHORIZED_HOSPITAL;
+  const isAdminPage = location.pathname.startsWith('/admin') || role === USER_ROLES.ADMIN;
+  const isInstitutionalOrAdmin = isHospitalPage || isAdminPage;
+
+  // Regular public nav links
+  const publicNavLinks = [
     { name: 'Home', path: '/' },
     { name: 'About', path: '/about' },
     { name: 'Find Blood', path: '/find-blood' },
@@ -50,11 +55,20 @@ export default function Navbar() {
     { name: 'Contact', path: '/contact' },
   ];
 
+  // Completely remove Home, About, Find Blood, Donate Blood, Request Blood on hospital & admin pages
+  const navLinks = isInstitutionalOrAdmin ? [] : publicNavLinks;
+
   // User target dashboard URL based on active role
   const getDashboardUrl = () => {
     if (role === USER_ROLES.AUTHORIZED_HOSPITAL) return '/hospital-dashboard';
     if (role === USER_ROLES.ADMIN) return '/admin-dashboard';
     return '/donor-dashboard';
+  };
+
+  const getLogoLink = () => {
+    if (isHospitalPage) return '/hospital-dashboard';
+    if (isAdminPage) return '/admin-dashboard';
+    return '/';
   };
 
   return (
@@ -71,27 +85,43 @@ export default function Navbar() {
             
             {/* Left: Logo */}
             <div className="flex-shrink-0">
-              <Logo />
+              <Logo linkTo={getLogoLink()} />
             </div>
 
-            {/* Center: Desktop Nav Links */}
-            <nav className="hidden lg:flex items-center gap-1 xl:gap-2">
-              {navLinks.map((link) => (
-                <NavLink
-                  key={link.name}
-                  to={link.path}
-                  className={({ isActive }) =>
-                    `px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 relative ${
-                      isActive
-                        ? 'text-white font-semibold bg-white/10 shadow-[0_0_20px_rgba(229,9,20,0.25)] border border-white/20 backdrop-blur-md'
-                        : 'text-[#B0B0B8] hover:text-white hover:bg-white/5'
-                    }`
-                  }
-                >
-                  {link.name}
-                </NavLink>
-              ))}
-            </nav>
+            {/* Center: Desktop Nav Links or Institutional Console Badges */}
+            {isInstitutionalOrAdmin ? (
+              <div className="hidden lg:flex items-center gap-3">
+                {isHospitalPage ? (
+                  <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-sky-500/10 border border-sky-500/25 text-xs font-semibold text-sky-300 shadow-sm backdrop-blur-md">
+                    <Building className="w-4 h-4 text-sky-400" />
+                    <span>Hospital Clinical Operations Portal</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/25 text-xs font-semibold text-amber-300 shadow-sm backdrop-blur-md">
+                    <ShieldAlert className="w-4 h-4 text-amber-400" />
+                    <span>Central Administration & Governance Console</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <nav className="hidden lg:flex items-center gap-1 xl:gap-2">
+                {navLinks.map((link) => (
+                  <NavLink
+                    key={link.name}
+                    to={link.path}
+                    className={({ isActive }) =>
+                      `px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 relative ${
+                        isActive
+                          ? 'text-white font-semibold bg-white/10 shadow-[0_0_20px_rgba(229,9,20,0.25)] border border-white/20 backdrop-blur-md'
+                          : 'text-[#B0B0B8] hover:text-white hover:bg-white/5'
+                      }`
+                    }
+                  >
+                    {link.name}
+                  </NavLink>
+                ))}
+              </nav>
+            )}
 
             {/* Right: Auth & Dashboard Actions */}
             <div className="hidden lg:flex items-center gap-2.5">
@@ -111,33 +141,17 @@ export default function Navbar() {
                 )}
               </button>
 
-              {/* Quick dashboard shortcuts */}
-              <Link
-                to="/donor-dashboard"
-                title="Donor Portal"
-                className="text-xs text-[#B0B0B8] hover:text-white flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 hover:border-[#E50914]/50 transition-all bg-white/[0.05] backdrop-blur-md hover:bg-white/[0.08]"
-              >
-                <Heart className="w-3.5 h-3.5 text-[#E50914]" />
-                <span>Portal</span>
-              </Link>
-
-              <Link
-                to="/hospital-portal"
-                title="Hospital Portal"
-                className="text-xs text-[#B0B0B8] hover:text-white flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 hover:border-sky-400/50 transition-all bg-white/[0.05] backdrop-blur-md hover:bg-white/[0.08]"
-              >
-                <Building className="w-3.5 h-3.5 text-sky-400" />
-                <span>Hospital</span>
-              </Link>
-
-              <Link
-                to="/admin-dashboard"
-                title="Admin Panel"
-                className="text-xs text-[#B0B0B8] hover:text-white flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 hover:border-[#FF2B2B]/50 transition-all bg-white/[0.05] backdrop-blur-md hover:bg-white/[0.08]"
-              >
-                <ShieldAlert className="w-3.5 h-3.5 text-[#FF2B2B]" />
-                <span>Admin</span>
-              </Link>
+              {/* My Requests (Only for voluntary public users/donors/seekers) */}
+              {user && !isInstitutionalOrAdmin && (
+                <Link
+                  to="/my-requests"
+                  title="My Blood Requests"
+                  className="text-xs text-[#B0B0B8] hover:text-white flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 hover:border-[#E50914]/50 transition-all bg-white/[0.05] backdrop-blur-md hover:bg-white/[0.08]"
+                >
+                  <FileText className="w-3.5 h-3.5 text-[#FF2B2B]" />
+                  <span>My Requests</span>
+                </Link>
+              )}
 
               {/* Auth Buttons / User State */}
               {user ? (
@@ -147,10 +161,30 @@ export default function Navbar() {
                     className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.06] border border-white/15 hover:border-[#E50914]/60 text-xs font-semibold text-white transition-all shadow-[0_0_15px_rgba(229,9,20,0.2)] backdrop-blur-md"
                     title="Active Dashboard"
                   >
-                    <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#FF2B2B] to-[#990000] text-white flex items-center justify-center text-[11px] font-bold shadow-sm">
-                      {profile?.full_name ? profile.full_name.charAt(0).toUpperCase() : (user.email ? user.email.charAt(0).toUpperCase() : 'U')}
+                    <div
+                      className={`w-6 h-6 rounded-lg text-white flex items-center justify-center text-[11px] font-bold shadow-sm ${
+                        isHospitalPage
+                          ? 'bg-gradient-to-br from-sky-500 to-blue-700'
+                          : isAdminPage
+                          ? 'bg-gradient-to-br from-amber-500 to-red-600'
+                          : 'bg-gradient-to-br from-[#FF2B2B] to-[#990000]'
+                      }`}
+                    >
+                      {isHospitalPage ? (
+                        <Building className="w-3.5 h-3.5 text-white" />
+                      ) : isAdminPage ? (
+                        <ShieldAlert className="w-3.5 h-3.5 text-white" />
+                      ) : profile?.full_name ? (
+                        profile.full_name.charAt(0).toUpperCase()
+                      ) : user.email ? (
+                        user.email.charAt(0).toUpperCase()
+                      ) : (
+                        'U'
+                      )}
                     </div>
-                    <span className="max-w-[100px] truncate">{profile?.full_name || profile?.name || user.email?.split('@')[0]}</span>
+                    <span className="max-w-[130px] truncate">
+                      {profile?.hospital_name || profile?.full_name || profile?.name || user.name || user.email?.split('@')[0]}
+                    </span>
                   </Link>
 
                   <button
@@ -195,12 +229,14 @@ export default function Navbar() {
                   <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-[#E50914]" />
                 )}
               </button>
-              <Link
-                to="/request-blood"
-                className="px-2.5 py-1 rounded bg-[#E50914] text-white text-xs font-bold flex items-center gap-1"
-              >
-                Emergency
-              </Link>
+              {!isInstitutionalOrAdmin && (
+                <Link
+                  to="/request-blood"
+                  className="px-2.5 py-1 rounded bg-[#E50914] text-white text-xs font-bold flex items-center gap-1"
+                >
+                  Emergency
+                </Link>
+              )}
               <button
                 onClick={() => setIsOpen(!isOpen)}
                 type="button"
@@ -217,58 +253,62 @@ export default function Navbar() {
         {/* Mobile Drawer */}
         {isOpen && (
           <div className="lg:hidden bg-[rgba(14,14,20,0.92)] backdrop-blur-3xl border-b border-white/10 px-4 pt-2 pb-6 space-y-3 animate-fadeIn shadow-[0_25px_60px_rgba(0,0,0,0.85)]">
-            <div className="space-y-1">
-              {navLinks.map((link) => (
-                <NavLink
-                  key={link.name}
-                  to={link.path}
-                  className={({ isActive }) =>
-                    `block px-3.5 py-2.5 rounded-xl text-base font-medium transition-colors ${
-                      isActive
-                        ? 'text-white bg-white/10 border-l-4 border-[#E50914] backdrop-blur-md'
-                        : 'text-[#B0B0B8] hover:text-white hover:bg-white/5'
-                    }`
-                  }
-                >
-                  {link.name}
-                </NavLink>
-              ))}
-            </div>
+            {isInstitutionalOrAdmin ? (
+              <div className="p-3.5 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-zinc-300 flex items-center gap-2.5">
+                {isHospitalPage ? (
+                  <>
+                    <Building className="w-4 h-4 text-sky-400 flex-shrink-0" />
+                    <span>Hospital Clinical Operations Portal</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldAlert className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                    <span>Central Administration Console</span>
+                  </>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {navLinks.map((link) => (
+                  <NavLink
+                    key={link.name}
+                    to={link.path}
+                    className={({ isActive }) =>
+                      `block px-3.5 py-2.5 rounded-xl text-base font-medium transition-colors ${
+                        isActive
+                          ? 'text-white bg-white/10 border-l-4 border-[#E50914] backdrop-blur-md'
+                          : 'text-[#B0B0B8] hover:text-white hover:bg-white/5'
+                      }`
+                    }
+                  >
+                    {link.name}
+                  </NavLink>
+                ))}
+              </div>
+            )}
 
             <div className="pt-4 border-t border-white/10 flex flex-col gap-2.5">
-              <div className="grid grid-cols-3 gap-2 mb-1">
-                <Link
-                  to="/donor-dashboard"
-                  className="flex items-center justify-center gap-1 py-2 text-[11px] font-medium rounded-lg bg-[#161616] text-[#B0B0B0] border border-[#333]"
-                >
-                  <Heart className="w-3 h-3 text-[#E50914]" />
-                  Donor
-                </Link>
-                <Link
-                  to="/hospital-portal"
-                  className="flex items-center justify-center gap-1 py-2 text-[11px] font-medium rounded-lg bg-[#161616] text-[#B0B0B0] border border-[#333]"
-                >
-                  <Building className="w-3 h-3 text-sky-400" />
-                  Hospital
-                </Link>
-                <Link
-                  to="/admin-dashboard"
-                  className="flex items-center justify-center gap-1 py-2 text-[11px] font-medium rounded-lg bg-[#161616] text-[#B0B0B0] border border-[#333]"
-                >
-                  <ShieldAlert className="w-3 h-3 text-[#FF2B2B]" />
-                  Admin
-                </Link>
-              </div>
-
               {user ? (
                 <div className="space-y-2">
+                  {!isInstitutionalOrAdmin && (
+                    <Link
+                      to="/my-requests"
+                      className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-[#161616] border border-white/10 text-xs font-semibold text-white"
+                    >
+                      <span className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-[#FF2B2B]" />
+                        <span>My Blood Requests</span>
+                      </span>
+                      <span className="text-[10px] text-emerald-400 font-mono uppercase font-bold">Track</span>
+                    </Link>
+                  )}
                   <Link
                     to={getDashboardUrl()}
                     className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-[#161616] border border-[#E50914]/40 text-xs font-semibold text-white"
                   >
                     <span className="flex items-center gap-2">
                       <User className="w-4 h-4 text-[#FF2B2B]" />
-                      <span>{profile?.full_name || profile?.name || user.email}</span>
+                      <span>{profile?.hospital_name || profile?.full_name || profile?.name || user.email}</span>
                     </span>
                     <span className="text-[10px] text-[#E50914] font-mono uppercase font-bold">Dashboard</span>
                   </Link>

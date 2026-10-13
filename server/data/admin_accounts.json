@@ -1,0 +1,112 @@
+[
+  {
+    "sNo": 1,
+    "id": "admin-manick-001",
+    "name": "Manick",
+    "username": "manick_admin",
+    "email": "manick_admin@bloodbridge.org",
+    "password": "Man#1001",
+    "role": "ADMIN",
+    "designation": "Senior System Administrator",
+    "department": "Central Blood Operations"
+  },
+  {
+    "sNo": 2,
+    "id": "admin-sanjayraj-002",
+    "name": "Sanjay Raj",
+    "username": "sanjayraj_admin",
+    "email": "sanjayraj_admin@bloodbridge.org",
+    "password": "San#1002",
+    "role": "ADMIN",
+    "designation": "Lead Platform Administrator",
+    "department": "Technical & System Architecture"
+  },
+  {
+    "sNo": 3,
+    "id": "admin-kumaravel-003",
+    "name": "Kumaravel",
+    "username": "kumaravel_admin",
+    "email": "kumaravel_admin@bloodbridge.org",
+    "password": "Kum#1003",
+    "role": "ADMIN",
+    "designation": "Operations Administrator",
+    "department": "Donor Registry Management"
+  },
+  {
+    "sNo": 4,
+    "id": "admin-murugavel-004",
+    "name": "Murugavel",
+    "username": "murugavel_admin",
+    "email": "murugavel_admin@bloodbridge.org",
+    "password": "Mur#1004",
+    "role": "ADMIN",
+    "designation": "Hospital Logistics Administrator",
+    "department": "Clinical Verification Desk"
+  },
+  {
+    "sNo": 5,
+    "id": "admin-prabhakaran-005",
+    "name": "Prabhakaran",
+    "username": "prabhakaran_admin",
+    "email": "prabhakaran_admin@bloodbridge.org",
+    "password": "Pra#1005",
+    "role": "ADMIN",
+    "designation": "Emergency Triage Administrator",
+    "department": "Critical Blood Dispatch"
+  },
+  {
+    "sNo": 6,
+    "id": "admin-dhinesh-006",
+    "name": "Dhinesh",
+    "username": "dhinesh_admin",
+    "email": "dhinesh_admin@bloodbridge.org",
+    "password": "Dhi#1006",
+    "role": "ADMIN",
+    "designation": "Regional Coordinator Admin",
+    "department": "District Blood Bank Network"
+  },
+  {
+    "sNo": 7,
+    "id": "admin-kumar-007",
+    "name": "Kumar",
+    "username": "kumar_admin",
+    "email": "kumar_admin@bloodbridge.org",
+    "password": "Kum#1007",
+    "role": "ADMIN",
+    "designation": "Verification Administrator",
+    "department": "Clinical Eligibility Oversight"
+  },
+  {
+    "sNo": 8,
+    "id": "admin-jenisha-008",
+    "name": "Jenisha",
+    "username": "jenisha_admin",
+    "email": "jenisha_admin@bloodbridge.org",
+    "password": "Jen#1008",
+    "role": "ADMIN",
+    "designation": "Rare Phenotype Administrator",
+    "department": "Bombay Blood Group Protocol Desk"
+  },
+  {
+    "sNo": 9,
+    "id": "admin-sobana-009",
+    "name": "Nagarani (alias Sobana)",
+    "username": "sobana_admin",
+    "email": "sobana_admin@bloodbridge.org",
+    "password": "Nag#1009",
+    "role": "ADMIN",
+    "designation": "Quality & Audit Administrator",
+    "department": "Compliance & Data Protection"
+  },
+  {
+    "sNo": 10,
+    "id": "admin-apunitha-010",
+    "name": "A. Punitha",
+    "username": "apunitha_admin",
+    "email": "apunitha_admin@bloodbridge.org",
+    "password": "Pun#1010",
+    "role": "ADMIN",
+    "designation": "Security & Access Administrator",
+    "department": "Administrative Security Operations"
+  }
+]

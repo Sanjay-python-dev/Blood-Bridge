@@ -10,6 +10,19 @@ app.use(express.json());
 // Mount API routes
 app.use('/api', apiRouter);
 
+// Direct email action routes
+app.get('/email-action', (req, res) => {
+  const token = req.query.token || '';
+  const action = req.query.action || '';
+  res.redirect(307, `/api/email-action?token=${encodeURIComponent(token)}${action ? `&action=${encodeURIComponent(action)}` : ''}`);
+});
+
+app.get('/email-approval', (req, res) => {
+  const token = req.query.token || '';
+  const action = req.query.action || '';
+  res.redirect(307, `/api/email-action?token=${encodeURIComponent(token)}${action ? `&action=${encodeURIComponent(action)}` : ''}`);
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'BloodBridge Hospital Service', timestamp: new Date().toISOString() });

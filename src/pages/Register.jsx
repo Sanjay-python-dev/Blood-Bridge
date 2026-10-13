@@ -27,6 +27,7 @@ import Logo from '../components/Logo';
 import { useAuth } from '../context/AuthContext';
 import { TAMIL_NADU_DISTRICTS, locationData } from '../data/locationData';
 import { showToast } from '../components/Toast';
+import BloodAtmosphere from '../components/animations/BloodAtmosphere';
 
 const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 const DONATION_COUNT_OPTIONS = ['1', '2–5', '6–10', '11–20', 'More than 20'];
@@ -299,6 +300,7 @@ export default function Register() {
     <div className="min-h-[90vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-[#050505] relative overflow-hidden">
       
       {/* Background Red Ambient Glow */}
+      <BloodAtmosphere intensity={0.1} dropCount={0} particleCount={4} />
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-[#E50914]/12 rounded-full blur-[160px] pointer-events-none" />
 
       <div className="relative z-10 w-full max-w-2xl">
@@ -407,50 +409,6 @@ export default function Register() {
                 </p>
               </div>
 
-              {/* User Type Choice */}
-              <div>
-                <label className="block text-xs font-bold text-[#B0B0B0] uppercase tracking-wider mb-2">
-                  I Want To Register As *
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    id="role-donor-button"
-                    onClick={() => updateField('userType', 'donor')}
-                    className={`p-3.5 rounded-xl border text-sm font-bold flex items-center justify-center gap-2 transition-all ${
-                      formData.userType === 'donor'
-                        ? 'bg-[#1c090c] border-[#E50914] text-white shadow-[0_0_15px_rgba(229,9,20,0.4)]'
-                        : 'bg-[#161616] border-[#2e2e2e] text-[#B0B0B0] hover:border-white/20'
-                    }`}
-                  >
-                    <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center ${
-                      formData.userType === 'donor' ? 'border-[#E50914]' : 'border-[#555]'
-                    }`}>
-                      {formData.userType === 'donor' && <span className="w-1.5 h-1.5 rounded-full bg-[#E50914]" />}
-                    </span>
-                    <span>Blood Donor</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    id="role-requester-button"
-                    onClick={() => updateField('userType', 'requester')}
-                    className={`p-3.5 rounded-xl border text-sm font-bold flex items-center justify-center gap-2 transition-all ${
-                      formData.userType === 'requester'
-                        ? 'bg-[#1c090c] border-[#E50914] text-white shadow-[0_0_15px_rgba(229,9,20,0.4)]'
-                        : 'bg-[#161616] border-[#2e2e2e] text-[#B0B0B0] hover:border-white/20'
-                    }`}
-                  >
-                    <span className={`w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center ${
-                      formData.userType === 'requester' ? 'border-[#E50914]' : 'border-[#555]'
-                    }`}>
-                      {formData.userType === 'requester' && <span className="w-1.5 h-1.5 rounded-full bg-[#E50914]" />}
-                    </span>
-                    <span>Blood Requester</span>
-                  </button>
-                </div>
-              </div>
-
               {/* Full Name */}
               <div>
                 <label className="block text-xs font-bold text-[#B0B0B0] uppercase tracking-wider mb-1.5">
@@ -472,16 +430,16 @@ export default function Register() {
                 {errors.fullName && <p className="text-xs text-red-500 mt-1 font-medium">{errors.fullName}</p>}
               </div>
 
-              {/* Email Address */}
+              {/* Email / Gmail Address */}
               <div>
                 <label className="block text-xs font-bold text-[#B0B0B0] uppercase tracking-wider mb-1.5">
-                  Email Address *
+                  Email / Gmail Address *
                 </label>
                 <div className="relative">
                   <input
                     type="email"
                     id="reg-email"
-                    placeholder="e.g. sanjay@example.com"
+                    placeholder="e.g. sanjay@gmail.com"
                     value={formData.email}
                     onChange={(e) => updateField('email', e.target.value)}
                     className={`w-full bg-[#161616] border ${
@@ -1018,8 +976,8 @@ export default function Register() {
                       <span className="text-white font-medium">{getFormattedPhonePreview()}</span>
                     </div>
                     <div>
-                      <span className="text-[#737373] block">Registration Role:</span>
-                      <span className="text-emerald-400 font-bold uppercase">{formData.userType === 'donor' ? 'Blood Donor' : 'Blood Requester'}</span>
+                      <span className="text-[#737373] block">Account Status:</span>
+                      <span className="text-emerald-400 font-bold uppercase">Active Member</span>
                     </div>
                   </div>
                 </div>

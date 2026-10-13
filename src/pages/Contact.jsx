@@ -44,10 +44,10 @@ export default function Contact() {
             <h3 className="text-lg font-bold text-white mb-1">Email Support</h3>
             <p className="text-xs text-[#B0B0B0] mb-3">For inquiries and partnership queries</p>
             <a
-              href="mailto:support@bloodbridge.com"
+              href="mailto:bloodbridgesupportweb@gmail.com"
               className="text-sm font-semibold text-[#FF2B2B] hover:underline"
             >
-              support@bloodbridge.com
+              bloodbridgesupportweb@gmail.com
             </a>
           </div>
 

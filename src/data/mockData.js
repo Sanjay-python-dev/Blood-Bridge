@@ -1,4 +1,6 @@
 export const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+export const BOMBAY_BLOOD_GROUP = 'Bombay Blood Group (Oh)';
+export const BOMBAY_BLOOD_GROUP_LABEL = 'Oh — Bombay Blood Group';
 
 export const bloodGroupDetails = {
   'A+': { canDonateTo: ['A+', 'AB+'], canReceiveFrom: ['A+', 'A-', 'O+', 'O-'], prevalence: '35%' },
@@ -9,6 +11,7 @@ export const bloodGroupDetails = {
   'AB-': { canDonateTo: ['AB+', 'AB-'], canReceiveFrom: ['AB-', 'A-', 'B-', 'O-'], prevalence: '1%' },
   'O+': { canDonateTo: ['O+', 'A+', 'B+', 'AB+'], canReceiveFrom: ['O+', 'O-'], prevalence: '38%' },
   'O-': { canDonateTo: ['All Blood Types (Universal Donor)'], canReceiveFrom: ['O-'], prevalence: '7%' },
+  'Bombay Blood Group (Oh)': { canDonateTo: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Oh'], canReceiveFrom: ['Oh only (Extremely Rare)'], prevalence: '< 0.0004%' },
 };
 
 export const citiesTamilNadu = [
@@ -249,6 +252,9 @@ export const initialRequests = [
     requiredDate: 'Immediately (Today)',
     contactPerson: 'Gomathi (Wife)',
     contactPhone: '+91 98765 43210',
+    contactEmail: 'gomathi.kannan@gmail.com',
+    requesterEmail: 'gomathi.kannan@gmail.com',
+    email: 'gomathi.kannan@gmail.com',
     additionalMessage: 'Undergoing urgent cardiac bypass surgery. 2 units needed immediately.',
     status: 'Pending',
     createdAt: '2 hours ago',
@@ -266,6 +272,9 @@ export const initialRequests = [
     requiredDate: 'Within 24 Hours',
     contactPerson: 'Sundar (Brother)',
     contactPhone: '+91 98421 11223',
+    contactEmail: 'sundar.kumari@gmail.com',
+    requesterEmail: 'sundar.kumari@gmail.com',
+    email: 'sundar.kumari@gmail.com',
     additionalMessage: 'Maternal care delivery complication. Rare B- blood urgently requested.',
     status: 'Verified',
     createdAt: '4 hours ago',
@@ -283,6 +292,9 @@ export const initialRequests = [
     requiredDate: 'Immediate',
     contactPerson: 'Kavitha (Mother)',
     contactPhone: '+91 97890 55443',
+    contactEmail: 'kavitha.kavin@gmail.com',
+    requesterEmail: 'kavitha.kavin@gmail.com',
+    email: 'kavitha.kavin@gmail.com',
     additionalMessage: 'Pediatric emergency case. Platelets and whole blood needed.',
     status: 'In Progress',
     createdAt: '6 hours ago',
@@ -300,6 +312,9 @@ export const initialRequests = [
     requiredDate: 'Within 2 Days',
     contactPerson: 'Dinesh (Son)',
     contactPhone: '+91 94432 66778',
+    contactEmail: 'dinesh.selvaraj@gmail.com',
+    requesterEmail: 'dinesh.selvaraj@gmail.com',
+    email: 'dinesh.selvaraj@gmail.com',
     additionalMessage: 'Scheduled orthopedic joint replacement surgery requirement.',
     status: 'Fulfilled',
     createdAt: '1 day ago',
@@ -317,6 +332,9 @@ export const initialRequests = [
     requiredDate: 'Today Evening',
     contactPerson: 'Muthu (Husband)',
     contactPhone: '+91 98940 99887',
+    contactEmail: 'muthu.shanthi@gmail.com',
+    requesterEmail: 'muthu.shanthi@gmail.com',
+    email: 'muthu.shanthi@gmail.com',
     additionalMessage: 'Severe anemia condition under critical observation.',
     status: 'Pending',
     createdAt: '3 hours ago',

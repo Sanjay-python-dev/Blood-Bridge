@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import { authenticateHospital, getCurrentHospital, logoutHospital, getHospitalToken } from '../services/hospitalService';
+import { verifyAdminCredentials } from '../data/adminCredentials';
 
 const AuthContext = createContext({});
 const LOCAL_SESSION_KEY = 'bloodbridge_active_session';
@@ -36,6 +37,18 @@ export function AuthProvider({ children }) {
         console.warn('Error fetching user profile:', profileErr.message);
       }
 
+      // Safely ensure email is populated from Supabase Auth for existing/migrated users
+      if (profileData && !profileData.email) {
+        try {
+          const { data: supaUser } = await supabase.auth.getUser();
+          if (supaUser?.user?.email) {
+            profileData.email = supaUser.user.email;
+          }
+        } catch {
+          // Continue
+        }
+      }
+
       // 2. Fetch Donor record if present
       const { data: donorData, error: donorErr } = await supabase
         .from('donors')
@@ -45,6 +58,10 @@ export function AuthProvider({ children }) {
 
       if (donorErr && donorErr.code !== 'PGRST116') {
         console.warn('Error fetching donor record:', donorErr.message);
+      }
+
+      if (donorData && profileData && !donorData.email && profileData.email) {
+        donorData.email = profileData.email;
       }
 
       return { profile: profileData, donor: donorData };
@@ -295,6 +312,7 @@ export function AuthProvider({ children }) {
           initialDonor = {
             user_id: data.user.id,
             full_name: fullName.trim(),
+            email: cleanEmail,
             phone: formattedPhone,
             blood_group: cleanBloodGroup,
             city: cleanCity,
@@ -361,6 +379,7 @@ export function AuthProvider({ children }) {
       id: `d-${Date.now()}`,
       user_id: mockUser.id,
       full_name: fullName.trim(),
+      email: cleanEmail,
       phone: formattedPhone,
       blood_group: cleanBloodGroup,
       city: cleanCity,
@@ -491,6 +510,7 @@ export function AuthProvider({ children }) {
 
     let updatedDonor = donorRecord ? {
       ...donorRecord,
+      email: updatedProfile.email || user?.email || donorRecord.email || '',
       blood_group: updatedProfile.blood_group,
       district: updatedProfile.district,
       city: updatedProfile.city,
@@ -508,6 +528,7 @@ export function AuthProvider({ children }) {
           const newDonorRow = {
             user_id: user.id,
             full_name: updatedProfile.full_name,
+            email: updatedProfile.email || user?.email || '',
             phone: updatedProfile.phone,
             blood_group: updatedProfile.blood_group,
             district: updatedProfile.district,
@@ -582,30 +603,61 @@ export function AuthProvider({ children }) {
     return authResult;
   };
 
-  // Admin Login
-  const loginAdmin = async ({ email, password }) => {
-    if (!email || !password) {
-      throw new Error('Please enter admin email and password.');
+  // Admin Login - Strictly authenticated against the 10 authorized administrator accounts
+  const loginAdmin = async ({ identifier, email, username, password }) => {
+    const inputId = identifier || email || username;
+    if (!inputId || !password) {
+      throw new Error('Please enter Administrator Username/Email and Password.');
     }
-    const cleanEmail = email.trim().toLowerCase();
-    if (!cleanEmail.includes('admin')) {
-      throw new Error('Unauthorized. Administrative console requires verified admin credentials.');
+
+    // Verify credentials strictly against official roster (throws if unauthorized or wrong password)
+    const verified = verifyAdminCredentials(inputId, password);
+
+    // Also attempt backend auth token (non-blocking fallback)
+    let adminToken = null;
+    try {
+      const res = await fetch('/api/auth/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: inputId, password }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        adminToken = data.token;
+      }
+    } catch (_) {
+      // Standalone frontend fallback
     }
 
     const adminUser = {
-      id: 'admin-super-01',
-      email: cleanEmail,
+      id: verified.id,
+      email: verified.email,
+      username: verified.username,
+      name: verified.name,
       role: USER_ROLES.ADMIN,
+      sNo: verified.sNo,
+      designation: verified.designation,
+      department: verified.department,
     };
+
     const adminProfile = {
-      id: 'admin-super-01',
-      full_name: 'System Super Administrator',
-      email: cleanEmail,
+      id: verified.id,
+      full_name: verified.name,
+      username: verified.username,
+      email: verified.email,
       role: USER_ROLES.ADMIN,
+      sNo: verified.sNo,
+      designation: verified.designation,
+      department: verified.department,
     };
 
     saveLocalSession(adminUser, USER_ROLES.ADMIN, adminProfile);
-    return { user: adminUser, role: USER_ROLES.ADMIN };
+    if (adminToken) {
+      try {
+        sessionStorage.setItem('bloodbridge_admin_token', adminToken);
+      } catch (_) {}
+    }
+    return { user: adminUser, role: USER_ROLES.ADMIN, profile: adminProfile };
   };
 
   // Sign out
@@ -613,6 +665,9 @@ export function AuthProvider({ children }) {
     if (role === USER_ROLES.AUTHORIZED_HOSPITAL) {
       await logoutHospital();
     }
+    try {
+      sessionStorage.removeItem('bloodbridge_admin_token');
+    } catch (_) {}
     if (isSupabaseConfigured()) {
       try {
         await supabase.auth.signOut();

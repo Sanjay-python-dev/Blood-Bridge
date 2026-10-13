@@ -1,5 +1,6 @@
 import React from 'react';
 import { Heart, Activity, Sparkles } from 'lucide-react';
+import LivingBloodDrop from './LivingBloodDrop';
 
 export default function HeroVisual() {
   return (
@@ -67,48 +68,9 @@ export default function HeroVisual() {
         </span>
       </div>
 
-      {/* Centerpiece: Large Glowing Blood Drop */}
-      <div className="relative z-10 w-72 sm:w-84 md:w-96 aspect-square flex items-center justify-center animate-float-slow" style={{ animationDuration: '5s' }}>
-        <svg viewBox="0 0 200 220" className="w-full h-full drop-shadow-[0_0_40px_rgba(229,9,20,0.7)]">
-          <defs>
-            {/* Blood Drop Radial Gradient */}
-            <radialGradient id="heroDropGrad" cx="40%" cy="35%" r="65%">
-              <stop offset="0%" stopColor="#FF4A4A" />
-              <stop offset="45%" stopColor="#E50914" />
-              <stop offset="85%" stopColor="#7A0006" />
-              <stop offset="100%" stopColor="#380002" />
-            </radialGradient>
-
-            {/* Inner Sheen Glow */}
-            <linearGradient id="dropSheen" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.4" />
-              <stop offset="60%" stopColor="#FFFFFF" stopOpacity="0.0" />
-            </linearGradient>
-
-            {/* Outer Drop Glow Filter */}
-            <filter id="heroDropGlow" x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur stdDeviation="6" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
-          </defs>
-
-          {/* Blood Drop Main Body */}
-          <path
-            d="M 100 15 
-               C 100 15, 30 95, 30 142 
-               C 30 182, 61 205, 100 205 
-               C 139 205, 170 182, 170 142 
-               C 170 95, 100 15, 100 15 Z"
-            fill="url(#heroDropGrad)"
-            filter="url(#heroDropGlow)"
-          />
-
-          {/* Glossy Reflection Highlight curve */}
-          <path
-            d="M 98 32 C 98 32, 48 98, 46 138 C 45 155, 49 168, 52 170 C 49 160, 48 145, 52 132 C 58 102, 92 48, 98 32 Z"
-            fill="url(#dropSheen)"
-          />
-        </svg>
+      {/* Centerpiece: Living Animated Blood Drop */}
+      <div className="relative z-10 w-72 sm:w-84 md:w-96 aspect-square flex items-center justify-center">
+        <LivingBloodDrop />
       </div>
 
       {/* Floating Badge near Illustration: "One Donation • Many Lives" */}

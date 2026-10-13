@@ -1,9 +1,19 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Heart, Phone, Mail, MapPin, ArrowUp } from 'lucide-react';
 import Logo from './Logo';
 
 export default function Footer() {
+  const location = useLocation();
+
+  // Hide footer on hospital pages and admin pages for clean, dedicated dashboard view
+  if (
+    location.pathname.startsWith('/hospital') ||
+    location.pathname.startsWith('/admin')
+  ) {
+    return null;
+  }
+
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };

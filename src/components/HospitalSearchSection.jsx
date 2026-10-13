@@ -8,6 +8,7 @@ import {
   Users,
   Navigation,
   Phone,
+  Mail,
   AlertCircle,
   Loader2,
   CheckCircle2,
@@ -381,11 +382,27 @@ export default function HospitalSearchSection() {
                       <span>{donor.city ? `${donor.city}, ${donor.district}` : donor.district}</span>
                     </div>
 
-                    <div className="pt-2 border-t border-white/5 flex items-center justify-between text-xs">
-                      <span className="font-mono text-[#888] flex items-center gap-1">
-                        <Phone className="w-3 h-3 text-[#737373]" />
-                        <span>{donor.phone}</span>
-                      </span>
+                    <div className="pt-2 border-t border-white/5 flex flex-wrap items-center justify-between gap-2 text-xs">
+                      <div className="flex flex-wrap items-center gap-3">
+                        {donor.phone && (
+                          <a
+                            href={`tel:${donor.phone}`}
+                            className="font-mono text-[#888] hover:text-white flex items-center gap-1 transition-colors"
+                          >
+                            <Phone className="w-3 h-3 text-[#737373]" />
+                            <span>{donor.phone}</span>
+                          </a>
+                        )}
+                        {(donor.displayEmail || donor.email) && (
+                          <a
+                            href={`mailto:${donor.email || donor.displayEmail}`}
+                            className="text-[#888] hover:text-white flex items-center gap-1 transition-colors break-all"
+                          >
+                            <Mail className="w-3 h-3 text-[#E50914]" />
+                            <span>{donor.displayEmail || donor.email}</span>
+                          </a>
+                        )}
+                      </div>
                       <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
                         <CheckCircle2 className="w-3 h-3" /> Ready
                       </span>

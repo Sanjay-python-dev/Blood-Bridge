@@ -34,10 +34,10 @@ export default function Home() {
               </div>
 
               {/* Main Heading */}
-              <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.08] text-white">
-                Connecting Lives <br />
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.12] text-white">
+                Every Drop Can Build a <br />
                 <span className="text-[#E50914] drop-shadow-[0_0_35px_rgba(229,9,20,0.7)]">
-                  Through Blood
+                  Bridge Between Lives
                 </span>
               </h1>
 

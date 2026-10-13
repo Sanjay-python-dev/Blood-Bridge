@@ -34,7 +34,8 @@ export function authenticateHospitalToken(req, res, next) {
       location: hospital.location,
       latitude: hospital.latitude,
       longitude: hospital.longitude,
-      user_key: hospital.user_key
+      user_key: hospital.user_key,
+      email: hospital.email || '',
     };
     req.token = token;
 

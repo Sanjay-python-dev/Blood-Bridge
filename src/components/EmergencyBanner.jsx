@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { AlertCircle, Search, Flame, PhoneCall } from 'lucide-react';
+import BloodEmergencyPulse from '../components/animations/BloodEmergencyPulse';
 
 export default function EmergencyBanner() {
   return (
@@ -22,7 +23,7 @@ export default function EmergencyBanner() {
             {/* Urgent Badge with pulsing icon */}
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#E50914]/20 border border-[#E50914] text-[#FF2B2B] text-xs font-bold uppercase tracking-wider mb-4 animate-pulse">
               <span className="w-2.5 h-2.5 rounded-full bg-[#FF2B2B] animate-ping" />
-              <AlertCircle className="w-4 h-4" />
+              <BloodEmergencyPulse><AlertCircle className="w-4 h-4" /></BloodEmergencyPulse>
               <span>Priority Response Network</span>
             </div>
 
