@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: blood-bridge
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_PUBLIC_URL
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        value: BloodBridge <onboarding@resend.dev>
+      - key: SUPPORT_EMAIL
+        value: bloodbridgesupportweb@gmail.com
+      - key: JWT_SECRET
+        generateValue: true

@@ -1,6 +1,13 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 import apiRouter from './routes/api.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const distPath = path.resolve(__dirname, '../dist');
 
 export const app = express();
 
@@ -27,6 +34,17 @@ app.get('/email-approval', (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'BloodBridge Hospital Service', timestamp: new Date().toISOString() });
 });
+
+// Serve frontend build in production / standalone mode if dist/ exists
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+  app.use((req, res, next) => {
+    if (req.method === 'GET' && !req.path.startsWith('/api') && !req.path.startsWith('/email-')) {
+      return res.sendFile(path.join(distPath, 'index.html'));
+    }
+    next();
+  });
+}
 
 export default app;
 

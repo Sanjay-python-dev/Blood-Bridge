@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "start": "node server/index.js",
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "node tests/test_central_support_comprehensive.js && node tests/test_no_phone_donation_response.js && node tests/test_email_approval_flow.js",
