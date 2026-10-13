@@ -13,7 +13,8 @@ import {
   KeyRound,
   Loader2,
   AlertCircle,
-  UserCheck
+  UserCheck,
+  Sparkles,
 } from 'lucide-react';
 import Logo from '../components/Logo';
 import { useAuth, USER_ROLES } from '../context/AuthContext';
