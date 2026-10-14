@@ -59,7 +59,7 @@ export default function App() {
                 }
               />
               <Route path="/login" element={<Login />} />
-              <Route path="/admin" element={<Navigate to="/login?type=admin" replace />} />
+              <Route path="/admin" element={<Navigate to="/admin-dashboard" replace />} />
               <Route path="/register" element={<Register />} />
               <Route path="/contact" element={<Contact />} />
 

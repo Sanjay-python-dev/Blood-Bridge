@@ -25,6 +25,9 @@ function bloodBridgeApiPlugin() {
     name: 'bloodbridge-api-server',
     configureServer(server) {
       server.middlewares.use(apiApp);
+    },
+    configurePreviewServer(server) {
+      server.middlewares.use(apiApp);
     }
   };
 }

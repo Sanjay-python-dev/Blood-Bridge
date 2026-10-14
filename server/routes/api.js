@@ -1146,10 +1146,10 @@ router.post('/blood-requests', (req, res) => {
 
     // 3. Indian Mobile Number Validation
     const rawContact = requesterPhone || hospitalContact || '';
-    if (rawContact && !isValidIndianMobile(rawContact)) {
+    if (requesterPhone && !isValidIndianMobile(requesterPhone)) {
       return res.status(400).json({
         error: 'Invalid Mobile Number',
-        message: 'Please enter a valid 10-digit Indian mobile phone number.',
+        message: 'Please enter a valid 10-digit Indian mobile phone number for the requester.',
       });
     }
 

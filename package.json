@@ -13,7 +13,9 @@
     "test:support": "node tests/test_central_support_comprehensive.js",
     "test:donation": "node tests/test_no_phone_donation_response.js",
     "test:approval": "node tests/test_email_approval_flow.js",
-    "test:verify": "node tests/verify_feature.js"
+    "test:verify": "node tests/verify_feature.js",
+    "test:email": "node tests/test_email_dispatch.js",
+    "test:firestore": "node tests/test_firestore_requests.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.109.0",

@@ -609,8 +609,8 @@ function wrapBloodBridgeTemplate({
   actionButtonText = 'Open BloodBridge Portal',
   actionButtonUrl = null,
 }) {
-  const resolvedButtonUrl = (actionButtonUrl && !actionButtonUrl.includes('localhost') && !actionButtonUrl.includes('127.0.0.1'))
-    ? actionButtonUrl
+  const resolvedButtonUrl = (actionButtonUrl && actionButtonUrl.trim())
+    ? actionButtonUrl.trim()
     : getPublicAppUrl();
 
   return `
@@ -839,8 +839,8 @@ Please log in to the BloodBridge system to review this request.
     badgeText: isEmergency ? 'CRITICAL DISPATCH' : 'BLOOD REQUEST',
     badgeColor: isEmergency ? '#ef4444' : '#E50914',
     contentHtml,
-    actionButtonText: 'Review Blood Request',
-    actionButtonUrl: `${getPublicAppUrl()}/my-requests`,
+    actionButtonText: 'Review Blood Request in Admin Console',
+    actionButtonUrl: `${getPublicAppUrl()}/admin-dashboard?tab=requests`,
   });
 
   return await dispatchEmail({
@@ -1122,7 +1122,7 @@ BloodBridge
     badgeColor: '#10b981',
     contentHtml,
     actionButtonText: 'Open BloodBridge Dashboard',
-    actionButtonUrl: `${getPublicAppUrl()}/admin`,
+    actionButtonUrl: `${getPublicAppUrl()}/admin-dashboard?tab=donors`,
   });
 
   return await dispatchEmail({
@@ -1921,8 +1921,8 @@ BloodBridge
     badgeText: 'DONATION APPROVED',
     badgeColor: '#10b981',
     contentHtml,
-    actionButtonText: 'Open BloodBridge Portal',
-    actionButtonUrl: `${getPublicAppUrl()}/admin`,
+    actionButtonText: 'Open BloodBridge Dashboard',
+    actionButtonUrl: `${getPublicAppUrl()}/admin-dashboard?tab=requests`,
   });
 
   return await dispatchEmail({
@@ -2445,8 +2445,8 @@ BloodBridge
     badgeText: 'SUPPORT NOTICE',
     badgeColor: '#10b981',
     contentHtml,
-    actionButtonText: 'Open BloodBridge Portal',
-    actionButtonUrl: `${getPublicAppUrl()}/admin`,
+    actionButtonText: 'Open BloodBridge Dashboard',
+    actionButtonUrl: `${getPublicAppUrl()}/admin-dashboard`,
   });
 
   // If valid primary recipient exists and is not the support email, send to recipient with BCC to support

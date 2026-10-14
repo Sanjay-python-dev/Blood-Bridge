@@ -56,9 +56,13 @@ export default function AdminDashboard() {
   const { user, profile, signOut } = useAuth();
   const [activeTab, setActiveTab] = useState(() => {
     const params = new URLSearchParams(window.location.search);
-    const tabParam = params.get('tab');
+    const tabParam = (params.get('tab') || '').toLowerCase();
     if (tabParam === 'email' || tabParam === 'email-automation') return 'Email Automation';
     if (tabParam === 'roster' || tabParam === 'admin-roster') return 'Admin Roster';
+    if (tabParam === 'requests' || tabParam === 'blood-requests') return 'Blood Requests';
+    if (tabParam === 'donors') return 'Donors';
+    if (tabParam === 'hospitals') return 'Hospitals';
+    if (tabParam === 'bombay') return 'Bombay Protocol';
     return 'Dashboard';
   });
   const [donorsList, setDonorsList] = useState([]);
@@ -119,6 +123,17 @@ export default function AdminDashboard() {
   useEffect(() => {
     refreshData();
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tabParam = (params.get('tab') || '').toLowerCase();
+    if (tabParam === 'email' || tabParam === 'email-automation') setActiveTab('Email Automation');
+    else if (tabParam === 'roster' || tabParam === 'admin-roster') setActiveTab('Admin Roster');
+    else if (tabParam === 'requests' || tabParam === 'blood-requests') setActiveTab('Blood Requests');
+    else if (tabParam === 'donors') setActiveTab('Donors');
+    else if (tabParam === 'hospitals') setActiveTab('Hospitals');
+    else if (tabParam === 'bombay') setActiveTab('Bombay Protocol');
+  }, [location.search]);
 
   const handleDonorAction = (id, newStatus) => {
     updateDonorAdminStatus(id, newStatus);

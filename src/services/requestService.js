@@ -492,9 +492,11 @@ export const createBloodRequest = async (formData, userId = null) => {
       }
     } else {
       const errData = await res.json().catch(() => ({}));
+      console.warn('[BloodRequest Backend Sync Note]:', errData.message || `Status ${res.status}`);
       if (errData.message && !createdReq) throw new Error(errData.message);
     }
   } catch (err) {
+    console.warn('[BloodRequest Backend Dispatch Error]:', err.message);
     if (err.message && !err.message.includes('fetch') && !createdReq) {
       throw err;
     }
